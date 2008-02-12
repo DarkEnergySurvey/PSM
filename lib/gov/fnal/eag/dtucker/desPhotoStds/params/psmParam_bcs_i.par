@@ -1,0 +1,52 @@
+#An example parameter file for PhotomEqSolverRun2b for the BCS data in the i filter
+
+#The values in this file will override the default values hardwired into the PSM2b code,
+# but the the values in this file will themselves be overridden by any values given to 
+# the optional parameters in the command line argument list for 
+# java gov.fnal.eag.dtucker.desPhotoStds.PhotomEqSolverRun2b
+
+#Parameters that deal with the observations
+filter          i
+nite            bcs061027
+instrument      Mosaic2
+telescope       "Blanco 4m"
+ccdid           0            #0=all CCDs; otherwise, give CCD number (e.g., 29)
+imageType       remap
+imageNameFilter %
+runiddesc       %
+
+#Parameters that deal with the database
+url             jdbc:oracle:thin:@charon.ncsa.uiuc.edu:1521:
+dbName          des
+debug           false         #if debug=true, the psmfit table is NOT updated
+
+#Parameters that deal with the fit
+stdColor0       0.09         #zeropoint color in m_inst-m_std = a + b*(stdColor-stdColor0) + kX
+                             #in general, use 0.53 for filters g and r; use 0.09 for i and z
+
+magLo           15.0         #use only those standard stars with mags between magLo & magHi
+magHi           18.0
+niterations     3            #number of iterations for sigma-clipping outlier rejection
+nsigma          2.5          #number of sigma for sigma-clipping outlier rejection
+
+ksolve          false        #solve for k? (true/false)
+kdefault         0.089       #only used if ksolve=false
+kdefaultErr      0.02        #only used if ksolve=false
+
+bsolve          false        #solve for b? (true/false)
+bdefault        -0.20        #only used if bsolve=false
+bdefaultErr      0.02        #only used if bsolve=false
+
+#Other parameters
+psmVersion      v2b          #version of the PSM code used
+verbose         2            #0=minimal output to screen, 1=more screen output, 2=even more
+
+
+######################################
+# Future passable parameters???
+######################################
+#filterList    "u g r i z"   #eventually generalize for other filter sets (griZY, UBVRI, ...)
+#stdColorName  "g-r"
+#stdColorMin  -100.00
+#stdColorMax   100.00
+######################################

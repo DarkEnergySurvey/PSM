@@ -1,0 +1,112 @@
+HOW TO RUN THE PHOTOMETRIC STANDARDS MODULE (PSM) OUTSIDE OF OGRE/ELF
+
+1. Set the DESPHOTOSTDSMOD_HOME environment variable to the
+   top level directory of the DESPhotoStdsMod product. 
+
+   For example:
+
+    (a) on bcs.cosmology.uiuc.edu: 
+        setenv DESPHOTOSTDSMOD_HOME /home/dtucker/PSM
+
+    (b) on my Mac OSX laptop:
+        setenv DESPHOTOSTDSMOD_HOME /Users/dtucker/PSM
+
+
+2. Set the JAVA_HOME environment variable to the top level 
+   directory of java jdk.
+
+   For example: 
+
+    (a) on bcs.cosmology.uiuc.edu:
+        setenv JAVA_HOME /usr/java/jdk1.5.0_11
+
+    (b) on my Mac OSX laptop:
+        setenv JAVA_HOME /System/Library/Frameworks/JavaVM.framework/Versions/1.5/Home
+
+
+3. Change to the $DESPHOTOSTDSMOD_HOME directory:
+       cd $DESPHOTOSTDSMOD_HOME
+
+
+4. Source the setup script (currently, csh only):
+       source bin/setup.csh
+ 
+
+5. Change to the directory in which you will run PSM.
+
+   For example, on my Mac OSX laptop: 
+   cd /Users/dtucker/Desktop/DESDMtests/PSMtests/PSMTests
+
+   You may wish to copy the default PSM parameter files from
+     $DESPHOTOSTDSMOD_HOME/lib/gov/fnal/eag/dtucker/desPhotoStds/params
+   into your working directory.
+
+
+6. Check out the PSM help (optional):
+
+   java gov.fnal.eag.dtucker.desPhotoStds.PhotomEqSolverRun2b --help
+
+
+7. Run the PSM.
+
+   For example, the following commands run the PSM on the BCS night bcs061223
+   (replacing "XXXXXXX" and "YYYYYYY" respectively with a correct DES DB username and password):
+
+   java gov.fnal.eag.dtucker.desPhotoStds.PhotomEqSolverRun2b --user XXXXXXX -p YYYYYYY -t "Blanco 4m" -n bcs061223 --debug --paramFile ./psmParam_bcs_g.par --bsolve --ksolve > ./output.bcs061223g.log &
+
+   tail -f output.bcs061223g.log
+
+   java gov.fnal.eag.dtucker.desPhotoStds.PhotomEqSolverRun2b --user XXXXXXX -p YYYYYYY -t "Blanco 4m" -n bcs061223 --debug --paramFile ./psmParam_bcs_r.par --bsolve --ksolve > ./output.bcs061223r.log &
+
+   tail -f output.bcs061223r.log
+
+   java gov.fnal.eag.dtucker.desPhotoStds.PhotomEqSolverRun2b --user XXXXXXX -p YYYYYYY -t "Blanco 4m" -n bcs061027 --debug --paramFile ./psmParam_bcs_i.par --bsolve --ksolve > ./output.bcs061027i.log &
+
+   tail -f output.bcs061027i.log
+
+   java gov.fnal.eag.dtucker.desPhotoStds.PhotomEqSolverRun2b --user XXXXXXX -p YYYYYYY -t "Blanco 4m" -n bcs061027 --debug --paramFile ./psmParam_bcs_z.par --bsolve --ksolve > ./output.bcs061027z.log &
+
+   tail -f output.bcs061027z.log
+
+
+   (If you want to update the PSMFIT table in the DES database, exclude the "--debug" option
+    in the above commands.)
+
+
+8. Check out the Quality Assurance (QA) plots.  
+   The "PSM_QA_res_vs_*.jpg" files are the most interesting.
+
+
+9. Check out the new entries in the PSMFIT table (only applicable if the 
+   "--debug" option was not used in Step 7 above).
+
+   The PSMFIT table has the following format:
+
+    Name                           Null     Type     
+    ------------------------------ -------- -------------
+    PSMFIT_ID                      NOT NULL NUMBER(5)    
+    NITE                                    VARCHAR2(12) 
+    MJDLO                                   NUMBER(15,10)
+    MJDHI                                   NUMBER(15,10)
+    CCDID                                   NUMBER(4)    
+    FILTER                                  VARCHAR2(8)  
+    A                                       NUMBER(10,6) 
+    AERR                                    NUMBER(10,6) 
+    B                                       NUMBER(10,6) 
+    BERR                                    NUMBER(10,6) 
+    K                                       NUMBER(10,6) 
+    KERR                                    NUMBER(10,6) 
+    RMS                                     NUMBER(10,6) 
+    CHI2                                    NUMBER(10,6) 
+    DOF                                     NUMBER(12)    
+    PHOTOMETRICFLAG                         NUMBER(2)    
+    PSMVERSION                              VARCHAR2(20) 
+    FIT_TIMESTAMP                           TIMESTAMP(1) 
+    CFILTER                                 VARCHAR2(8)  
+    STDCOLOR0                               NUMBER(10,6) 
+    ASOLVE                                  NUMBER(2)    
+    BSOLVE                                  NUMBER(2)    
+    KSOLVE                                  NUMBER(2)    
+
+
+
