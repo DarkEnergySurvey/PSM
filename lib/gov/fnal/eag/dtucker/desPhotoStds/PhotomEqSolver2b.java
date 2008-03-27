@@ -733,8 +733,10 @@ public class PhotomEqSolver2b {
 					+ ", " + rms + ", " + chi2 + ", " + dof + ", "
 					+ photometricFlag + ", '" + psmVersion
 					+ "', to_timestamp('" + tt.toString()
-					+ "','YYYY-MM-DD HH24:MI:SS.FF3'), '" + cFilter  + "', " 
-					+ stdColor0 + ", " + asolveFlag + ", " + bsolveFlag + ", " + ksolveFlag;
+					+ "','YYYY-MM-DD HH24:MI:SS.FF3'), '" 
+					+ cFilter  + "', " + stdColor0 + ", " 
+					+ asolveFlag + ", " + bsolveFlag + ", " + ksolveFlag  + 
+					", '" + runiddesc + "'";
 
 			//String values = psmfit_id + ", " + "'" + nite + "', " + mjdLo
 			//		+ ", " + mjdHi + ", " + ccdIdArray[iccd] + ", '"
