@@ -15,6 +15,7 @@ public class MatchedStdStar {
 	private double stdgr        = -1000.0;
 	private double stdri        = -1000.0;
 	private double stdiz        = -1000.0;
+	private double stdzY        = -1000.0;
 	private double mjd          = -1000.0;
 
 	public double getAirmass() {
@@ -94,6 +95,12 @@ public class MatchedStdStar {
 	}
 	public void setStdStarName(String stdStarName) {
 		this.stdStarName = stdStarName;
+	}
+	public double getStdzY() {
+		return stdzY;
+	}
+	public void setStdzY(double stdzY) {
+		this.stdzY = stdzY;
 	}
 	
 }
