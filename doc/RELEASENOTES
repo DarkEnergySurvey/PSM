@@ -1,0 +1,35 @@
+PSM v_DC4 (13 Oct 2008)
+-----------------------
+
+1.  Added PhotomEqSolverRunDC4, PhotomEqSolverDC4, ColorTermCoeffs, and
+    DESDMFile classes.
+    a. Support for new DES database tables.
+    b. Support for Y-band.
+    c. Support for a per-CCD fixed value of the instrumental color term 
+       coefficient ("b").
+    d. Support for accessing $HOME_DIR/.desdm file.
+    e. New intermediate verbosity levels of output to screen/log for PSM.
+
+2.  Updated MatchedStdStar class to include support for Y-band.
+    a. Backwards compatibility for PhotomEqSolverRun2b, PhotomEqSolverRun2b. 
+
+3.  Updated default psmParam*.par files.
+    a. Renamed old default psmParam_bcs_*.par files to 
+         psmParam_preDC4_bcs_*.par.
+    b. Created new default psmParam_bcs_*.par files that are compliant
+         with PhotomEqSolverRunDC4 (but are also backwards-compatible with
+         PhotomEqSolverRun2b)
+    c. Created new default psmParam_des_*.par files for use with DES DC4
+         simulations.
+
+4.  Removed extraneous *.java and *.class files in 
+    $DESPHOTOSTDSMOD_HOME/trunk/lib/gov/fnal/eag/dtucker/desPhotoStds
+
+5.  Updated $DESPHOTOSTDSMOD_HOME/doc/README
+
+6.  Added $DESPHOTOSTDSMOD_HOME/doc/RELEASENOTES
+
+7.  Added setup script for bash ($DESPHOTOSTDSMOD_HOME/bin/setup.bash) 
+    in addition to the original setup script for tcsh 
+    ($DESPHOTOSTDSMOD_HOME/bin/setup.csh).
+
