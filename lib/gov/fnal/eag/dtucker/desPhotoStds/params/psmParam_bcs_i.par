@@ -1,28 +1,28 @@
-#An example parameter file for PhotomEqSolverRun2b for the BCS data in the i filter
+#An example parameter file for PhotomEqSolverRunDC4 for the BCS data in the i filter
+# (Also usable for PhotomEqSolverRun2b)
 
-#The values in this file will override the default values hardwired into the PSM2b code,
+#The values in this file will override the default values hardwired into the PSM code,
 # but the the values in this file will themselves be overridden by any values given to 
 # the optional parameters in the command line argument list for 
-# java gov.fnal.eag.dtucker.desPhotoStds.PhotomEqSolverRun2b
+# java gov.fnal.eag.dtucker.desPhotoStds.PhotomEqSolverRunDC4
 
 #Parameters that deal with the observations
 filter          i
-nite            bcs061027
-instrument      Mosaic2
-telescope       "Blanco 4m"
+nite            20061223
+project         BCS          # the project parameter has replaced the instrument and telescope parameters starting with PhotomEqSolverRunDC4
 ccdid           0            #0=all CCDs; otherwise, give CCD number (e.g., 29)
 imageType       remap
 imageNameFilter %
-runiddesc       %
+run             20080324000000_20061223  # the run parameter has replaced the runiddesc parameter starting with PhotomEqSolverRunDC4
 
 #Parameters that deal with the database
-url             jdbc:oracle:thin:@des1.cosmology.uiuc.edu:1521: 
+url             jdbc:oracle:thin:@desdb.cosmology.uiuc.edu:1521: 
 dbName          des
 debug           false         #if debug=true, the psmfit table is NOT updated
 
 #Parameters that deal with the fit
 stdColor0       0.09         #zeropoint color in m_inst-m_std = a + b*(stdColor-stdColor0) + kX
-                             #in general, use 0.53 for filters g and r; use 0.09 for i and z
+                             #in general, use 0.53 for filters g and r; use 0.09 for i and z; 0.05 for Y
 
 magLo           15.0         #use only those standard stars with mags between magLo & magHi
 magHi           18.0
@@ -34,18 +34,44 @@ kdefault         0.089       #only used if ksolve=false
 kdefaultErr      0.02        #only used if ksolve=false
 
 bsolve          false        #solve for b? (true/false)
-bdefault        -0.20        #only used if bsolve=false
-bdefaultErr      0.02        #only used if bsolve=false
+bccdidArray          1       2       3       4       5       6       7       8    #only used if bsolve=false
+bdefaultArray     -0.216  -0.134  -0.114  -0.215  -0.206  -0.180  -0.164  -0.216  #only used if bsolve=false 
+bdefaultErrArray   0.004   0.003   0.003   0.004   0.003   0.003   0.003   0.003  #only used if bsolve=false
+# Notes on bsolve, ccdidArray, bdefaultArray, and bdefaultErrArry: 
+#   -- bccdidArray, bdefaultArray, and bdefaultErrArry ignored by PhotomEqSolverRun2b
+#   -- Fixed values of bdefaultArray and bdefaultErrArray from 
+#      https://desweb.cosmology.uiuc.edu/confluence/display/DESAST/Overview+of+BCS+photometry+corrections (as of 13 Oct 2008)
+
+
 
 #Other parameters
-psmVersion      v2b          #version of the PSM code used
-verbose         2            #0=minimal output to screen, 1=more screen output, 2=even more
+
+
+########################################################################
+# Deprecated parameter file parameters ("#" those to be ignored by code)
+########################################################################
+#psmVersion      v_DC4       #version of the PSM code used (grab from the code or via argument list)
+
+instrument      Mosaic2      #the instrument parameter has been deprecated starting with PhotomEqSolverRunDC4
+
+telescope       "Blanco 4m"  #the telescope parameter has been deprecated starting with PhotomEqSolverRunDC4
+
+runiddesc       %            #the runiddesc parameter has been deprecated starting with PhotomEqSolverRunDC4
+
+verbose         1            #preferred method of controlling verbosity level is via command line argument list
+
+bdefault        -0.20        #the bdefault parameter has been deprecateed starting with PhotomEqSolverRunDC4
+                             # (although it can still be issued as an option from the command line)
+
+bdefaultErr      0.02        #the bdefaultErr parameter has been deprecated starting with PhotomEqSolverRunDC4
+                             # (although it can still be issued as an option from the command line)
+
 
 
 ######################################
 # Future passable parameters???
 ######################################
-#filterList    "u g r i z"   #eventually generalize for other filter sets (griZY, UBVRI, ...)
+#filterList    "u g r i z Y"   #eventually generalize for other filter sets (UBVRI, ...)
 #stdColorName  "g-r"
 #stdColorMin  -100.00
 #stdColorMax   100.00
