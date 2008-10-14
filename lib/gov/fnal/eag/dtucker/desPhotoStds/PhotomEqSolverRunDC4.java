@@ -90,21 +90,21 @@ public class PhotomEqSolverRunDC4 {
 				"   -d, --debug                   include this flag if the database is not to be updated \n" +
 				"   -h, --help                    this message \n\n" + 
 				"   Example 1: \n" +
-				"      java gov.fnal.eag.dtucker.desPhotoStds.PhotomEqSolverRunDC4 --url jdbc:oracle:thin:@charon.ncsa.uiuc.edu:1521: --dbName des  -u myUserName -p myPassword -P BCS -n bcs061223 -f g --ccdid 0 --magLo 15.0 --magHi 18.0 --niter 3 --nsigma 2.5 --imageType remap --imageNameFilter % --run % --psmVersion v_DC4 --debug -v 2 --bsolve --ksolve \n\n" +
+				"      java gov.fnal.eag.dtucker.desPhotoStds.PhotomEqSolverRunDC4 --url jdbc:oracle:thin:@charon.ncsa.uiuc.edu:1521: --dbName des  -u myUserName -p myPassword -P BCS -n 20061223 -f g --ccdid 0 --magLo 15.0 --magHi 18.0 --niter 3 --nsigma 2.5 --imageType remap --imageNameFilter % --run 20080324000000_20061223 --psmVersion v_DC4 --debug -v 2 --bsolve --ksolve \n\n" +
 				"   Example 1a (with .desdm file): \n" +
-				"      java gov.fnal.eag.dtucker.desPhotoStds.PhotomEqSolverRunDC4 -P BCS -n bcs061223 -f g --ccdid 0 --magLo 15.0 --magHi 18.0 --niter 3 --nsigma 2.5 --imageType remap --imageNameFilter % --run % --psmVersion v_DC4 --debug -v 2 --bsolve --ksolve \n\n" +
+				"      java gov.fnal.eag.dtucker.desPhotoStds.PhotomEqSolverRunDC4 -P BCS -n 20061223 -f g --ccdid 0 --magLo 15.0 --magHi 18.0 --niter 3 --nsigma 2.5 --imageType remap --imageNameFilter % --run 20080324000000_20061223 --psmVersion v_DC4 --debug -v 2 --bsolve --ksolve \n\n" +
 				"   Example 2: \n" +
-				"      java gov.fnal.eag.dtucker.desPhotoStds.PhotomEqSolverRunDC4 --user myUserName -p myPassword -P BCS -n bcs061223 -f g --debug -v 2 --ksolve \n\n" + 
+				"      java gov.fnal.eag.dtucker.desPhotoStds.PhotomEqSolverRunDC4 --user myUserName -p myPassword -P BCS -n 20061223 -f g --debug -v 2 --ksolve \n\n" + 
 				"   Example 2a (with .desdm file): \n" +
-				"      java gov.fnal.eag.dtucker.desPhotoStds.PhotomEqSolverRunDC4 -P BCS -n bcs061223 -f g --debug -v 2 --ksolve \n\n" + 
+				"      java gov.fnal.eag.dtucker.desPhotoStds.PhotomEqSolverRunDC4 -P BCS -n 20061223 -f g --debug -v 2 --ksolve \n\n" + 
 				"   Example 3: \n" +
 				"      java gov.fnal.eag.dtucker.desPhotoStds.PhotomEqSolverRunDC4 --user myUserName -p myPassword -P BCS --paramFile /home/myname/psmParam.par \n\n" + 
 				"   Example 3a (with .desdm file): \n" +
 				"      java gov.fnal.eag.dtucker.desPhotoStds.PhotomEqSolverRunDC4 -P BCS --paramFile /home/myname/psmParam.par \n\n" + 
 				"   Example 4: \n" +
-				"      java gov.fnal.eag.dtucker.desPhotoStds.PhotomEqSolverRunDC4 --user myUserName -p myPassword -P BCS -n bcs061223 -f g --debug -v 2 --ksolve  --paramFile /home/myname/psmParam.par \n\n" + 
+				"      java gov.fnal.eag.dtucker.desPhotoStds.PhotomEqSolverRunDC4 --user myUserName -p myPassword -P BCS -n 20061223 -f g --debug -v 2 --ksolve  --paramFile /home/myname/psmParam.par \n\n" + 
 				"   Example 4a (with .desdm file): \n" +
-				"      java gov.fnal.eag.dtucker.desPhotoStds.PhotomEqSolverRunDC4 -P BCS -n bcs061223 -f g --debug -v 2 --ksolve  --paramFile /home/myname/psmParam.par \n\n" + 
+				"      java gov.fnal.eag.dtucker.desPhotoStds.PhotomEqSolverRunDC4 -P BCS -n 20061223 -f g --debug -v 2 --ksolve  --paramFile /home/myname/psmParam.par \n\n" + 
 				"   Example 5 (no .desdm file required): \n" + 
 				"      java gov.fnal.eag.dtucker.desPhotoStds.PhotomEqSolverRunDC4 --help \n\n";
 

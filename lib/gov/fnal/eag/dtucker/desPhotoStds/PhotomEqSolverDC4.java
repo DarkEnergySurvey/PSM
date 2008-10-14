@@ -378,13 +378,13 @@ public class PhotomEqSolverDC4 {
 		
 		
 		
-		System.out.println("Made it here ");
-		for (int index = 0; index < colorTermCoeffs.getBccdidArrayList().size(); index++) {
-			System.out.println(index + "\t" + 
-					colorTermCoeffs.getBccdidArrayList().get(index) + "\t" + 
-					colorTermCoeffs.getBdefaultArrayList().get(index) + "\t" + 
-					colorTermCoeffs.getBdefaultErrArrayList().get(index));
-		}
+		//System.out.println("Made it here ");
+		//for (int index = 0; index < colorTermCoeffs.getBccdidArrayList().size(); index++) {
+		//	System.out.println(index + "\t" + 
+		//			colorTermCoeffs.getBccdidArrayList().get(index) + "\t" + 
+		//			colorTermCoeffs.getBdefaultArrayList().get(index) + "\t" + 
+		//			colorTermCoeffs.getBdefaultErrArrayList().get(index));
+		//}
 		double[] bdefaultValues = new double[nccd];
 		double[] bdefaultErrValues = new double[nccd];
 		if (colorTermCoeffs.getBccdidArrayList().size() == 1 && 
