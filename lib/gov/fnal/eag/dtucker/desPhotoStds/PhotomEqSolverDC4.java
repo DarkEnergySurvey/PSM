@@ -404,7 +404,7 @@ public class PhotomEqSolverDC4 {
 						bdefaultErrValues[iccd] = Double.parseDouble(colorTermCoeffs.getBdefaultErrArrayList().get(index).toString());					
 					}
 				}
-				System.out.println(iccd + "\t" + ccdId + "\t" + bdefaultValues[iccd]);
+				//System.out.println(iccd + "\t" + ccdId + "\t" + bdefaultValues[iccd]);
 			}
 		}
 		
