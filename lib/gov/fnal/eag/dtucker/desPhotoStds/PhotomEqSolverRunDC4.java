@@ -619,8 +619,8 @@ public class PhotomEqSolverRunDC4 {
     	ph.setStdTable("standard_stars");
     	//ph.setObsTable("OBJECTS");
     	//ph.setObsTable("ALL_OBJECTS");
-    	//ph.setObsTable("OBJECTS_2008");
-    	ph.setObsTable("OBJECTS_ALL");
+    	ph.setObsTable("OBJECTS_2008");
+    	//ph.setObsTable("OBJECTS_ALL");
     	ph.setImageTable("IMAGE");
     	ph.setFitTable("psmfit");
     	
