@@ -282,7 +282,7 @@ public class PhotomEqSolverDC4 {
 			double totMagErr = baseMagErr;
 			
 			double exptime = (double) rs0.getFloat("exptime");
-			double instmag = (double) rs0.getFloat("mag_aper_3");
+			double instmag = (double) rs0.getFloat("mag_aper_5");
 			double zeropoint = (double) rs0.getFloat("zeropoint");
 			double airmass = (double) rs0.getFloat("airmass");
 
