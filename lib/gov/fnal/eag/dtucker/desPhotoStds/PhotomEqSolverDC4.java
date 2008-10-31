@@ -796,7 +796,7 @@ public class PhotomEqSolverDC4 {
 					+ "','YYYY-MM-DD HH24:MI:SS.FF3'), '" 
 					+ cFilter  + "', " + stdColor0 + ", " 
 					+ asolveFlag + ", " + bsolveFlag + ", " + ksolveFlag  + 
-					", '" + run + "'";
+					", '" + run + "', '" + project + "'";
 
 			//String values = psmfit_id + ", " + "'" + nite + "', " + mjdLo
 			//		+ ", " + mjdHi + ", " + ccdIdArray[iccd] + ", '"
