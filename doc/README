@@ -34,7 +34,7 @@ HOW TO RUN THE PHOTOMETRIC STANDARDS MODULE (PSM) OUTSIDE OF OGRE/ELF
        cd $DESPHOTOSTDSMOD_HOME
 
 
-4. Source the setup script (currently, csh only):
+4. Source the setup script:
        csh:  source bin/setup.csh
        bash: source bin/setup.bash
 
