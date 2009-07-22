@@ -617,10 +617,10 @@ public class PhotomEqSolverRunDC4 {
     	// Nonetheless, we set them here...
     	ph.setSqlDriver("oracle.jdbc.driver.OracleDriver");
     	ph.setStdTable("standard_stars");
-    	//ph.setObsTable("OBJECTS");
+    	ph.setObsTable("OBJECTS");
     	//ph.setObsTable("ALL_OBJECTS");
     	//ph.setObsTable("OBJECTS_2008");
-    	ph.setObsTable("OBJECTS_ALL");
+    	//ph.setObsTable("OBJECTS_ALL");
     	ph.setImageTable("IMAGE");
     	ph.setFitTable("psmfit");
     	
