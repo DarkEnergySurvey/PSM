@@ -1,3 +1,9 @@
+PSM v_DC4 (22 Jul 2009)
+-----------------------
+1.  Changed reference to objects table from OBJECTS_ALL to OBJECTS to 
+    reflect update in database schema (JIRA issue DES-825).
+
+
 PSM v_DC4 (13 Oct 2008)
 -----------------------
 
