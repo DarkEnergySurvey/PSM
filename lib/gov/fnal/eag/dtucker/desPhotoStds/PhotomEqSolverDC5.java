@@ -87,7 +87,7 @@ public class PhotomEqSolverDC5 {
 	private String imageType = "remap";
 	private String imageNameFilter = "%";
 	private String run = "%";
-	private String magType = "mag_aper_5";
+	private String magType = "mag_psf";
 
 	// Instance variables dealing with the fit
 	private int niterations = 3; // for outlier removal in fit
