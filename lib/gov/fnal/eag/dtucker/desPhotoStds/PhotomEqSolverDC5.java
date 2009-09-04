@@ -115,7 +115,7 @@ public class PhotomEqSolverDC5 {
 	public void solve() throws Exception {
 
 		if (verbose > 0) {
-			System.out.println("\n\nPhotomEqSolverDC4");
+			System.out.println("\n\nPhotomEqSolverDC5");
 		}
 			
 		if (verbose > 0) {
