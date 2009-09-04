@@ -42,7 +42,7 @@ HOW TO RUN THE PHOTOMETRIC STANDARDS MODULE (PSM) OUTSIDE OF OGRE/ELF
 5. Change to the directory in which you will run PSM.
 
    For example, on my Mac OSX laptop: 
-   cd /Users/dtucker/DESDM/DESDMtests/PSMtests/PSMTests/DC4
+   cd /Users/dtucker/DESDM/DESDMtests/PSMtests/PSMTests/DC5
 
    You may wish to copy the default PSM parameter files from
      $DESPHOTOSTDSMOD_HOME/lib/gov/fnal/eag/dtucker/desPhotoStds/params
@@ -51,7 +51,7 @@ HOW TO RUN THE PHOTOMETRIC STANDARDS MODULE (PSM) OUTSIDE OF OGRE/ELF
 
 6. Check out the PSM help (optional):
 
-   java gov.fnal.eag.dtucker.desPhotoStds.PhotomEqSolverRunDC4 --help
+   java gov.fnal.eag.dtucker.desPhotoStds.PhotomEqSolverRunDC5 --help
 
 
 7. Run the PSM.
@@ -60,33 +60,36 @@ HOW TO RUN THE PHOTOMETRIC STANDARDS MODULE (PSM) OUTSIDE OF OGRE/ELF
    (the following assume that you have a .desdm file in your home directory; 
     otherwise, use the --user (-u) and --passwd (-p) arguments in the command line):
 
-   java gov.fnal.eag.dtucker.desPhotoStds.PhotomEqSolverRunDC4 -P BCS -n 20061223 --run 20080324000000_20061223 --paramFile ./psmParam_bcs_g.par --bsolve --ksolve --debug > ./output.bcs061223g.log &
+   java gov.fnal.eag.dtucker.desPhotoStds.PhotomEqSolverRunDC5 -P BCS -n 20061223 --run 20080324000000_20061223 --paramFile ./psmParam_bcs_g.par --bsolve --ksolve --magType mag_aper_5 > ./output.bcs061223g.log &
 
    tail -f output.bcs061223g.log
 
-   java gov.fnal.eag.dtucker.desPhotoStds.PhotomEqSolverRunDC4 -P BCS -n 20061223 --run 20080324000000_20061223 --paramFile ./psmParam_bcs_r.par --bsolve --ksolve --debug > ./output.bcs061223r.log &
+   java gov.fnal.eag.dtucker.desPhotoStds.PhotomEqSolverRunDC5 -P BCS -n 20061223 --run 20080324000000_20061223 --paramFile ./psmParam_bcs_r.par --bsolve --ksolve --magType mag_psf > ./output.bcs061223r.log &
 
    tail -f output.bcs061223r.log
 
-   java gov.fnal.eag.dtucker.desPhotoStds.PhotomEqSolverRunDC4 -P BCS -n 20061223 --run 20080324000000_20061223 --paramFile ./psmParam_bcs_i.par --bsolve --ksolve --debug > ./output.bcs061223i.log &
+   java gov.fnal.eag.dtucker.desPhotoStds.PhotomEqSolverRunDC5 -P BCS -n 20061223 --run 20080324000000_20061223 --paramFile ./psmParam_bcs_i.par --bsolve --ksolve --magType mag_aper_3 > ./output.bcs061223i.log &
 
    tail -f output.bcs061223i.log
 
-   java gov.fnal.eag.dtucker.desPhotoStds.PhotomEqSolverRunDC4 -P BCS -n 20061223 --run 20080324000000_20061223 --paramFile ./psmParam_bcs_z.par --bsolve --ksolve --debug > ./output.bcs061223z.log &
+   java gov.fnal.eag.dtucker.desPhotoStds.PhotomEqSolverRunDC5 -P BCS -n 20061223 --run 20080324000000_20061223 --paramFile ./psmParam_bcs_z.par --bsolve --ksolve > ./output.bcs061223z.log &
 
    tail -f output.bcs061223z.log
 
 
-   (If you want to update the PSMFIT table in the DES database, exclude the "--debug" option
-    in the above commands.)
+   (If you want to update the PSMFIT table directly in the DES database, include the 
+    "--updateDB" option in the above commands.)
 
 
 8. Check out the Quality Assurance (QA) plots.  
    The "PSM_QA_res_vs_*.jpg" files are the most interesting.
 
 
-9. Check out the new entries in the PSMFIT table (only applicable if the 
-   "--debug" option was not used in Step 7 above).
+9. Check out the FITS binary table containing the results ("psmfitInput.fits").
+
+
+10. Check out the new entries in the PSMFIT table (only applicable if the 
+    "--updateDB" option was used in Step 7 above).
 
    The PSMFIT table has the following format:
 
@@ -123,7 +126,7 @@ HOW TO RUN THE PHOTOMETRIC STANDARDS MODULE (PSM) OUTSIDE OF OGRE/ELF
 UNIT TESTS
 ==============================================================================
 
-Unfortunately, as of this writing (14 Oct 2008), only one PSM unit test is
+Unfortunately, as of this writing (4 Sep 2009), only one PSM unit test is
 working.  This is DESDMFileTest, which tests the methods in the DESDMFile
 class.  To run the unit test:
 
