@@ -46,6 +46,7 @@ public class PhotomEqSolverRunDC5 {
         double nsigmaDefault          = ph.getNsigma();
         String imageTypeDefault       = ph.getImageType();
         String imageNameFilterDefault = ph.getImageNameFilter();
+        String imageidExcludeListDefault = ph.getImageidExcludeList();
         String runDefault             = ph.getRun();
         String psmVersionDefault      = ph.getPsmVersion();
         boolean bsolveDefault         = ph.getBsolve();
@@ -81,6 +82,7 @@ public class PhotomEqSolverRunDC5 {
 				"   --nsigma VALUE                # of sigma for outlier rejection      [default: " + nsigmaDefault + "] \n" +
 				"   --imageType VALUE             image type for std star fields        [default: " + imageTypeDefault + "] \n" +
 				"   --imageNameFilter VALUE       image name filter for std star fields [default: " + imageNameFilterDefault + "] \n" +
+				"   --imageidExcludeList VALUE    list of image ids to exclude from fit [default: " + imageidExcludeListDefault + "] \n" +
 				"   --run VALUE                   run for std star fields               [default: " + runDefault + "] \n" + 
 				"   --psmVersion VALUE            version of PSM                        [default: " + psmVersionDefault + "] \n" + 	
 				"   --bsolve                      include this flag to solve for instrumental color (b) terms \n" +
@@ -189,6 +191,7 @@ public class PhotomEqSolverRunDC5 {
         double nsigmaDefault          = ph.getNsigma();
         String imageTypeDefault       = ph.getImageType();
         String imageNameFilterDefault = ph.getImageNameFilter();
+        String imageidExcludeListDefault = ph.getImageidExcludeList();
         String runDefault             = ph.getRun();
         String psmVersionDefault      = ph.getPsmVersion();
         boolean bsolveDefault         = ph.getBsolve();
@@ -242,6 +245,7 @@ public class PhotomEqSolverRunDC5 {
         CmdLineParser.Option nsigmaOption          = parser.addDoubleOption("nsigma");
         CmdLineParser.Option imageTypeOption       = parser.addStringOption("imageType");
         CmdLineParser.Option imageNameFilterOption = parser.addStringOption("imageNameFilter");
+        CmdLineParser.Option imageidExcludeListOption = parser.addStringOption("imageidExcludeList");
         CmdLineParser.Option runOption             = parser.addStringOption("run");
         CmdLineParser.Option psmVersionOption      = parser.addStringOption("psmVersion");
         CmdLineParser.Option bsolveOption          = parser.addBooleanOption("bsolve");
@@ -342,7 +346,9 @@ public class PhotomEqSolverRunDC5 {
      						imageTypeDefault = field2;
      					} else if (field1.equals("imageNameFilter")) {
      						imageNameFilterDefault = field2;
-     					} else if (field1.equals("run")) {
+     					} else if (field1.equals("imageidExcludeList")) {
+     						imageidExcludeListDefault = field2;
+      					} else if (field1.equals("run")) {
      						runDefault = field2;
      					} else if (field1.equals("psmVersion")) {
      						psmVersionDefault = field2;
@@ -475,6 +481,7 @@ public class PhotomEqSolverRunDC5 {
     	double nsigma = ((Double)parser.getOptionValue(nsigmaOption, new Double(nsigmaDefault))).doubleValue();
     	String imageType = (String)parser.getOptionValue(imageTypeOption, imageTypeDefault);
     	String imageNameFilter = (String)parser.getOptionValue(imageNameFilterOption, imageNameFilterDefault);
+    	String imageidExcludeList = (String)parser.getOptionValue(imageidExcludeListOption, imageidExcludeListDefault);
     	String run = (String)parser.getOptionValue(runOption, runDefault);
     	String psmVersion = (String)parser.getOptionValue(psmVersionOption, psmVersionDefault);
     	Boolean bsolve = (Boolean)parser.getOptionValue(bsolveOption, bsolveDefault);
@@ -565,6 +572,9 @@ public class PhotomEqSolverRunDC5 {
     	
     	ph.setImageNameFilter(imageNameFilter);   
     	if (localVerbose > 0) {System.out.println("imageNameFilter="+ph.getImageNameFilter());}
+    	
+    	ph.setImageidExcludeList(imageidExcludeList);   
+    	if (localVerbose > 0) {System.out.println("imageidExcludeList="+ph.getImageidExcludeList());}
     	
     	ph.setRun(run);   
     	if (localVerbose > 0) {System.out.println("run="+ph.getRun());}

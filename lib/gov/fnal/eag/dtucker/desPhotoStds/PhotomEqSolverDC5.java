@@ -77,8 +77,8 @@ public class PhotomEqSolverDC5 {
 	// Instance variables dealing with the observed data to be 
 	// calibrated
 	private String project = "DES";
-	private double mjdLo = -1; // no longer selecting on mjd,
-	private double mjdHi = -1; // so setting mjdLo=mjdHi=-1
+	private double mjdLo =  999999; 
+	private double mjdHi = -999999; 
 	private int ccdid = 0;     // ccdid=0 means all ccds
 	private String filter = "r";
 	private String nite = "2005oct09";
@@ -86,6 +86,7 @@ public class PhotomEqSolverDC5 {
 	private double magHi = 18.0;
 	private String imageType = "remap";
 	private String imageNameFilter = "%";
+	private String imageidExcludeList = null;
 	private String run = "%";
 	private String magType = "mag_psf";
 
@@ -212,7 +213,8 @@ public class PhotomEqSolverDC5 {
 		// Might be interesting to grab all the mag apertures and the mag_psf to
 		//  perform a curve-of-growth analysis/QA plot; perhaps in a later version
 		//  of this code...
-		String query2 = "SELECT CCD, " + magType + " FROM " + imageTable + " i, "
+		String magErrType = "MAGERR" + magType.substring(3);
+		String query2 = "SELECT CCD, " + magType + ", " + magErrType + ", i.id, EXPOSUREID FROM " + imageTable + " i, "
 				+ obsTable + " o WHERE o.imageid=i.id AND o.object_id = ?";
 		PreparedStatement st2 = db.prepareStatement(query2);
 		if (verbose > 1) {
@@ -220,12 +222,31 @@ public class PhotomEqSolverDC5 {
 			System.out.println("");
 		}
 
+		String query4 = "SELECT MJD_OBS FROM EXPOSURE WHERE id = ?";
+		PreparedStatement st4 = db.prepareStatement(query4);
 		if (verbose > 1) {
-			System.out
-					.println("Point  ccd_number object_id  standard_star_id  stdmag["
-							+ filter + "]  instmag airmass  fieldName");
+			System.out.println("query4 = " + query4);
+			System.out.println("");
 		}
 
+		// Create array list of image id's to be excluded from the fit...
+		ArrayList imageidExcludeArrayList = new ArrayList();
+		String[] newImageidExcludeList = imageidExcludeList.split(",");
+		for (int ijk=0; ijk< newImageidExcludeList.length; ijk++) {
+			int imageid2Exclude = Integer.parseInt(newImageidExcludeList[ijk].trim());
+			if (verbose > 1) {	
+				System.out.println(ijk + "\t" + imageid2Exclude);
+			}
+			if (imageidExcludeArrayList.contains(imageid2Exclude) == false) {
+				imageidExcludeArrayList.add(new Integer(imageid2Exclude));
+			}
+		}		
+		
+		if (verbose > 1) {
+			System.out
+					.println("Point  ccd_number  image_id  exposure_id  mjd_obs  object_id  standard_star_id  stdmag["
+							+ filter + "]  instmag  instmagErr  airmass  fieldName");
+		}
 		int i = 0;
 		double[] stdmag = new double[filterList.length];
 		double[] stdmagerr = new double[filterList.length];
@@ -289,17 +310,17 @@ public class PhotomEqSolverDC5 {
 			double totMagErr = baseMagErr;
 			
 			double exptime = (double) rs0.getFloat("exptime");
-			//double instmag = (double) rs0.getFloat("mag_aper_5");
+			//double instmag0 = (double) rs0.getFloat("mag_aper_5");
 			double zeropoint = (double) rs0.getFloat("zeropoint");
 			double airmass = (double) rs0.getFloat("airmass");
 
 			//if (airmass < 1.05) {continue;}
 			
-			//instmag = instmag - zeropoint;
+			//instmag0 = instmag0 - zeropoint;
 			//if (exptime > 0.) {
-			//	instmag = instmag + 2.5 * 0.4342944819 * Math.log(exptime);
+				//instmag0 = instmag0 + 2.5 * 0.4342944819 * Math.log(exptime);
 			//}
-			//double deltamag = instmag - stdmag[filterIndex];
+			//double deltamag0 = instmag0 - stdmag[filterIndex];
 
 			// Find on which CCD this star lies, and find this star's instrumental mag...
 			st2.setInt(1, object_id);
@@ -310,6 +331,32 @@ public class PhotomEqSolverDC5 {
 			if (ccd_number > ccd_numberMax) {ccd_numberMax = ccd_number;}
 			double instmag = (double) rs2.getFloat(2);
 			instmag = instmag - zeropoint;
+
+			double instmagErr = (double) rs2.getFloat(3);
+			if (instmagErr >= 0.20) {
+				continue;
+			}
+			
+			int image_id = (int) rs2.getInt(4);
+			int exposure_id = (int) rs2.getInt(5);
+			
+			if (imageidExcludeArrayList.contains(image_id) == true) {
+				System.out.println("imageid " + image_id + " is part of imageid exclude list...  skipping... ");
+				continue;
+			}
+
+			//System.out.println(exposure_id);
+			
+			double mjd_obs = 0.;
+			if (exposure_id > 0) {
+				// Find the mjd_obs of the exposure from which this observation came:
+				st4.setInt(1, exposure_id);
+				ResultSet rs4 = st4.executeQuery();
+				rs4.next();
+				mjd_obs = (double) rs4.getDouble(1);
+				if (mjd_obs < mjdLo) {mjdLo = mjd_obs;}
+				if (mjd_obs > mjdHi) {mjdHi = mjd_obs;}
+			}
 
 			if (exptime > 0.) {
 				instmag = instmag + 2.5 * 0.4342944819 * Math.log(exptime);
@@ -342,19 +389,22 @@ public class PhotomEqSolverDC5 {
 			mStdStar.setCcd_number(ccd_number);
 			mStdStar.setDeltamag(deltamag);
 			mStdStar.setDeltamagerr(totMagErr);
-			mStdStar.setMjd(0.);
+			mStdStar.setMjd(mjd_obs);
 			mStdStar.setStdmag(stdmag[filterIndex]);
 			mStdStar.setStdug(stdmag[0]-stdmag[1]);
 			mStdStar.setStdgr(stdmag[1]-stdmag[2]);
 			mStdStar.setStdri(stdmag[2]-stdmag[3]);
 			mStdStar.setStdiz(stdmag[3]-stdmag[4]);
 			mStdStar.setStdzY(stdmag[4]-stdmag[5]);
+			mStdStar.setImage_id(image_id);
 			mStdStarList[iccd].add(mStdStar);
+
 
 			if (verbose > 1) {
 				System.out.println("   " + i + " " + ccd_number + " "
+						+ image_id + " " + exposure_id + " " + mjd_obs + " " + 
 						+ object_id + " " + standard_star_id + " "
-						+ stdmag[filterIndex] + " " + instmag + " " + airmass + " " + fieldName);
+						+ stdmag[filterIndex] + " " + instmag + " " + instmagErr + " " + airmass + " " + fieldName);
 			}
 
 			i++;
@@ -378,6 +428,13 @@ public class PhotomEqSolverDC5 {
 			System.out.println("");
 		}
 
+		if (mjdLo >= 100000) {
+			mjdLo = -1;
+		}
+		if (mjdHi <= 0) {
+			mjdHi = -1;
+		}
+		
 		// calculate the number of parameters in the fit...
 		// if we are fitting only for the photometric zeropoints
 		//  (a_1, ..., a_nccd) and the first-order extinction (k),
@@ -1058,7 +1115,9 @@ public class PhotomEqSolverDC5 {
 		XYSeries series2 = new XYSeries("");
 		XYSeries series3 = new XYSeries("");
 		XYSeries series4 = new XYSeries("");
-		
+		XYSeries series5 = new XYSeries("");
+		XYSeries series6 = new XYSeries("");
+
 		
 		for (iccd = 0; iccd < nccd; iccd++) {
 			
@@ -1076,6 +1135,8 @@ public class PhotomEqSolverDC5 {
 					double mag = mStdStar.getStdmag();
 					double ccd_number = mStdStar.getCcd_number();
 					double deltamag = mStdStar.getDeltamag();
+					double mjd = mStdStar.getMjd();
+					double image_id = mStdStar.getImage_id();
 					for (iccd = 0; iccd < nccd; iccd++) {
 						if (ccdIdArray[iccd] == ccd_number) {
 							break;
@@ -1100,6 +1161,8 @@ public class PhotomEqSolverDC5 {
 					series2.add(mag,res);
 					series3.add(stdColor,res);
 					series4.add(ccd_number,res);
+					series5.add(mjd,res);
+					series6.add(image_id,res);
 					
 				}
 				
@@ -1261,6 +1324,96 @@ public class PhotomEqSolverDC5 {
 		chart = ChartFactory.createScatterPlot(
 				title, // Title
 				"CCD number", // x-axis Label
+				"mag residual", // y-axis Label
+				dataset, // Dataset
+				PlotOrientation.VERTICAL, // Plot Orientation
+				false, // Show Legend
+				false, // Use tooltips
+				false // Configure chart to generate URLs?
+		);
+		
+		plot = (XYPlot) chart.getPlot();
+		renderer = new XYDotRenderer();
+		renderer.setDotHeight(4);
+		renderer.setDotWidth(4);
+		renderer.setSeriesPaint(0, Color.blue);
+		//renderer.setSeriesShape(0, Shape);
+		plot.setRenderer(renderer);
+		
+		// increase the margins to account for the fact that the auto-range 
+		// doesn't take into account the bubble size...
+		domainAxis = (NumberAxis) plot.getDomainAxis();
+		domainAxis.setLowerMargin(0.15);
+		domainAxis.setUpperMargin(0.15);
+		rangeAxis = (NumberAxis) plot.getRangeAxis();
+		rangeAxis.setLowerMargin(0.15);
+		rangeAxis.setUpperMargin(0.15);
+		
+		try {
+			ChartUtilities.saveChartAsJPEG(new File(qaPlotFile), chart, 500, 300);
+		} catch (IOException e) {
+			System.err.println("Problem occurred creating chart.");
+		}
+		
+		qaPlotFile = "PSM_QA_res_vs_mjd_" + nite + filter + ".jpg";
+		
+		if (verbose > 1) {
+			System.out.println("Creating plot " + qaPlotFile + "...");
+			System.out.println("");
+		}
+		
+		dataset = new XYSeriesCollection();
+		dataset.addSeries(series5);
+		
+		title = "Night: " + nite + " Filter: " + filter;
+		chart = ChartFactory.createScatterPlot(
+				title, // Title
+				"mjd_obs", // x-axis Label
+				"mag residual", // y-axis Label
+				dataset, // Dataset
+				PlotOrientation.VERTICAL, // Plot Orientation
+				false, // Show Legend
+				false, // Use tooltips
+				false // Configure chart to generate URLs?
+		);
+		
+		plot = (XYPlot) chart.getPlot();
+		renderer = new XYDotRenderer();
+		renderer.setDotHeight(4);
+		renderer.setDotWidth(4);
+		renderer.setSeriesPaint(0, Color.blue);
+		//renderer.setSeriesShape(0, Shape);
+		plot.setRenderer(renderer);
+		
+		// increase the margins to account for the fact that the auto-range 
+		// doesn't take into account the bubble size...
+		domainAxis = (NumberAxis) plot.getDomainAxis();
+		domainAxis.setLowerMargin(0.15);
+		domainAxis.setUpperMargin(0.15);
+		rangeAxis = (NumberAxis) plot.getRangeAxis();
+		rangeAxis.setLowerMargin(0.15);
+		rangeAxis.setUpperMargin(0.15);
+		
+		try {
+			ChartUtilities.saveChartAsJPEG(new File(qaPlotFile), chart, 500, 300);
+		} catch (IOException e) {
+			System.err.println("Problem occurred creating chart.");
+		}
+		
+		qaPlotFile = "PSM_QA_res_vs_imageid_" + nite + filter + ".jpg";
+		
+		if (verbose > 1) {
+			System.out.println("Creating plot " + qaPlotFile + "...");
+			System.out.println("");
+		}
+		
+		dataset = new XYSeriesCollection();
+		dataset.addSeries(series6);
+		
+		title = "Night: " + nite + " Filter: " + filter;
+		chart = ChartFactory.createScatterPlot(
+				title, // Title
+				"image_id", // x-axis Label
 				"mag residual", // y-axis Label
 				dataset, // Dataset
 				PlotOrientation.VERTICAL, // Plot Orientation
@@ -1863,6 +2016,16 @@ public class PhotomEqSolverDC5 {
 
 	public void setAdefaultErr(double adefaultErr) {
 		this.adefaultErr = adefaultErr;
+	}
+
+
+	public String getImageidExcludeList() {
+		return imageidExcludeList;
+	}
+
+
+	public void setImageidExcludeList(String imageidExcludeList) {
+		this.imageidExcludeList = imageidExcludeList;
 	}
 
 }
