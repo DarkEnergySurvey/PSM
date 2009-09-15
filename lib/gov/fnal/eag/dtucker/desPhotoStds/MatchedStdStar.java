@@ -17,6 +17,11 @@ public class MatchedStdStar {
 	private double stdiz        = -1000.0;
 	private double stdzY        = -1000.0;
 	private double mjd          = -1000.0;
+	private double stdRA        = -1000.0;
+	private double stdDec       = -1000.0;
+	private double fieldRA      = -1000.0;
+	private double fieldDec     = -1000.0; 
+	private int image_id        = -1000;
 
 	public double getAirmass() {
 		return airmass;
@@ -101,6 +106,36 @@ public class MatchedStdStar {
 	}
 	public void setStdzY(double stdzY) {
 		this.stdzY = stdzY;
+	}
+	public double getStdRA() {
+		return stdRA;
+	}
+	public void setStdRA(double stdRA) {
+		this.stdRA = stdRA;
+	}
+	public double getStdDec() {
+		return stdDec;
+	}
+	public void setStdDec(double stdDec) {
+		this.stdDec = stdDec;
+	}
+	public double getFieldRA() {
+		return fieldRA;
+	}
+	public void setFieldRA(double fieldRA) {
+		this.fieldRA = fieldRA;
+	}
+	public double getFieldDec() {
+		return fieldDec;
+	}
+	public void setFieldDec(double fieldDec) {
+		this.fieldDec = fieldDec;
+	}
+	public int getImage_id() {
+		return image_id;
+	}
+	public void setImage_id(int image_id) {
+		this.image_id = image_id;
 	}
 	
 }
