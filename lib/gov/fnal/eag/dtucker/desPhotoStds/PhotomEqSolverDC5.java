@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.StringTokenizer;
 
 import nom.tam.fits.*;
 import nom.tam.util.BufferedFile;
@@ -86,7 +87,7 @@ public class PhotomEqSolverDC5 {
 	private double magHi = 18.0;
 	private String imageType = "remap";
 	private String imageNameFilter = "%";
-	private String imageidExcludeList = null;
+	private String imageidExcludeList = "";
 	private String run = "%";
 	private String magType = "mag_psf";
 
@@ -231,9 +232,11 @@ public class PhotomEqSolverDC5 {
 
 		// Create array list of image id's to be excluded from the fit...
 		ArrayList imageidExcludeArrayList = new ArrayList();
-		String[] newImageidExcludeList = imageidExcludeList.split(",");
-		for (int ijk=0; ijk< newImageidExcludeList.length; ijk++) {
-			int imageid2Exclude = Integer.parseInt(newImageidExcludeList[ijk].trim());
+		StringTokenizer st = new StringTokenizer(imageidExcludeList,",");
+		int nTokens = st.countTokens();
+		System.out.println("nTokens=" + nTokens);
+		for (int ijk=0; ijk<nTokens; ijk++) {
+			int imageid2Exclude = Integer.parseInt((st.nextToken()).trim());
 			if (verbose > 1) {	
 				System.out.println(ijk + "\t" + imageid2Exclude);
 			}
@@ -241,6 +244,7 @@ public class PhotomEqSolverDC5 {
 				imageidExcludeArrayList.add(new Integer(imageid2Exclude));
 			}
 		}		
+		
 		
 		if (verbose > 1) {
 			System.out
