@@ -289,7 +289,7 @@ public class PhotomEqSolverRunDC5 {
  
     		if (paramFile.exists() == false || paramFile.canRead() == false) {
     			if (localVerbose > 0) {
-    				System.out.println(paramFileName + " either does not exist or cannot be read \n");
+    				System.out.println("STATUS5BEG ** " + paramFileName + " either does not exist or cannot be read ** STATUS5END \n");
     			}
     			System.exit(2);
     		}
@@ -659,6 +659,8 @@ public class PhotomEqSolverRunDC5 {
     			e.printStackTrace();
     		}
     	}
+    	
+    	System.out.println("STATUS2BEG PSM run completed STATUS2END");
     	
     }
     
