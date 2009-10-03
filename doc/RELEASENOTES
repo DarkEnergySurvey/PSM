@@ -1,7 +1,41 @@
+PSM v_DC5 (2 Oct 2009)
+----------------------
+
+1.  Updated default psmParam.par files for database's new domain name 
+    (JIRA Issue DES-1118).
+
+2.  Implemented the option and ability to use different types of magnitudes
+    (mag_aper_x, mag_psf, mag_model) for the instrumental magnitude in the 
+    fit to the photometric equation (JIRA issue DES-1100).
+
+3.  Implemented the option and ability to output results to a FITS binary
+    table rather than directly ingesting results into the PSMFIT table
+    in the database (JIRA issue DES-1063).
+
+4.  Implemented the option and ability to exclude a list of imageid's from the
+    fit to the photometric equation.  This list is passed to the PSM via the
+    command line.  Also, added a QA plot that shows residuals vs. imageid 
+    number. (JIRA issue DES-1140) 
+
+5.  Implemented code to find the range of mjds of the observations used in 
+    the fit and uses this information to fill in the mjdLo and mjdHi 
+    parameters in the PSMFIT table (these parameters had always been just 
+    set to "-1" until now.)  The mjd's are taken from the mjd_obs parameter
+    in the EXPOSURES table.  If this is not set, the values for mjdLo and 
+    mjdHi revert to "-1" as before.  Also, added a QA plot that shows 
+    residuals vs. mjd during the night.  (No JIRA issue)
+
+5.  Added a new QA plot showing residuals vs. position (in pixels) on the 
+    focal plane. (JIRA issue DES-921).
+
+
+
 PSM v_DC4 (22 Jul 2009)
 -----------------------
+
 1.  Changed reference to objects table from OBJECTS_ALL to OBJECTS to 
     reflect update in database schema (JIRA issue DES-825).
+
 
 
 PSM v_DC4 (13 Oct 2008)
