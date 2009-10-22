@@ -305,7 +305,7 @@ public class PhotomEqSolverDC5 {
 
 		while (rs0.next()) {
 
-			int object_id = rs0.getInt("object_id");
+			long object_id = rs0.getLong("object_id");
 			int standard_star_id = rs0.getInt("standard_star_id");
 
 			st1.setInt(1, standard_star_id);
@@ -352,7 +352,7 @@ public class PhotomEqSolverDC5 {
 
 			// Find on which CCD, image, and exposure this star lies, and find this star's 
 			//  instrumental mag, instrumental mag err, and (x,y)-position on the CCD...
-			st2.setInt(1, object_id);
+			st2.setLong(1, object_id);
 			ResultSet rs2 = st2.executeQuery();
 			rs2.next();
 			int ccd_number = (int) rs2.getInt(1);
