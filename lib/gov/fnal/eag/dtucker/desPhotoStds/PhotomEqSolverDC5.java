@@ -105,6 +105,7 @@ public class PhotomEqSolverDC5 {
 	private int niterations = 3; // for outlier removal in fit
 	private double nsigma = 2.5; // for outlier removal in fit
 	private boolean updateDB = false; //set to true if updating fitTable directly
+	private boolean useOnlyCurrentObjects = false; //set to true if only using objects from the OBJECTS_CURRENT table
 	
 	private double stdColor0   = 0.00;
 	private double baseMagErr = 0.02; // minimum error assoc'd with the
@@ -204,10 +205,18 @@ public class PhotomEqSolverDC5 {
 		String fullURL = url + dbName;
 		Connection db = DriverManager.getConnection(fullURL, user, passwd);
 
-		String query0 = "SELECT * FROM table(fPhotoStdsMatch(" + "'" + imageType
-				+ "', '" + imageNameFilter + "', " + "'" + nite + "', '"
+		String query0;
+		if (useOnlyCurrentObjects) {
+			query0 = "SELECT * FROM table(fPhotoStdsMatch(" + "'" + imageType
+			    + "', '" + imageNameFilter + "', " + "'" + nite + "', '"
 				+ filter + "', " + ccdid + ", " + magLo + ", " + magHi + ", '"
-				+ run + "', '" + project + "'))";
+				+ run + "', '" + project + "', 'CURRENT'))";
+		} else {
+			query0 = "SELECT * FROM table(fPhotoStdsMatch(" + "'" + imageType
+		    + "', '" + imageNameFilter + "', " + "'" + nite + "', '"
+			+ filter + "', " + ccdid + ", " + magLo + ", " + magHi + ", '"
+			+ run + "', '" + project + "', 'ALL'))";
+		}
 		if (verbose > 1) {
 			System.out.println("query0 = " + query0);
 			System.out.println("");
@@ -2388,6 +2397,17 @@ public class PhotomEqSolverDC5 {
 
 	public void setImageidExcludeList(String imageidExcludeList) {
 		this.imageidExcludeList = imageidExcludeList;
+	}
+
+	public boolean getUseOnlyCurrentObjects() {
+		return updateDB;
+	}
+	public boolean isUseOnlyCurrentObjects() {
+		return useOnlyCurrentObjects;
+	}
+
+	public void setUseOnlyCurrentObjects(boolean useOnlyCurrentObjects) {
+		this.useOnlyCurrentObjects = useOnlyCurrentObjects;
 	}
 
 }

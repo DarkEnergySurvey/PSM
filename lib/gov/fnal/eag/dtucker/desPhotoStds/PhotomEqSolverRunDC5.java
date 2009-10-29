@@ -56,6 +56,7 @@ public class PhotomEqSolverRunDC5 {
         double kdefaultDefault        = ph.getKdefault();
         double kdefaultErrDefault     = ph.getKdefaultErr();
         boolean updateDBDefault       = ph.getupdateDB();
+        boolean useOnlyCurrentObjectsDefault = ph.getUseOnlyCurrentObjects();
         int verboseDefault            = ph.getVerbose();
         
         // Create output message...
@@ -93,6 +94,7 @@ public class PhotomEqSolverRunDC5 {
 				"   --kdefaultErr VALUE           1sigma error in default value for k   [default: " + kdefaultErrDefault + "] \n" +
 				"   -v VALUE, --verbose VALUE     verbosity level (0, 1, 2, ...)        [default: " + verboseDefault + "] \n" + 
 				"   --updateDB                    include this flag if the database is to be updated directly \n" +
+				"   --useOnlyCurrentObjects       include this flag to use only objects in the OBJECTS_CURRENT table \n" + 
 				"   -h, --help                    this message \n\n" + 
 				"   Example 1: \n" +
 				"      java gov.fnal.eag.dtucker.desPhotoStds.PhotomEqSolverRunDC5 --url jdbc:oracle:thin:@charon.ncsa.uiuc.edu:1521: --dbName des  -u myUserName -p myPassword -P BCS -n 20061223 -f g --ccdid 0 --magLo 15.0 --magHi 18.0 --niter 3 --nsigma 2.5 --imageType remap --imageNameFilter % --run 20080324000000_20061223 --psmVersion v_DC5 -v 2 --bsolve --ksolve \n\n" +
@@ -201,6 +203,7 @@ public class PhotomEqSolverRunDC5 {
         double kdefaultDefault        = ph.getKdefault();
         double kdefaultErrDefault     = ph.getKdefaultErr();
         boolean updateDBDefault       = ph.getupdateDB();
+        boolean useOnlyCurrentObjectsDefault = ph.getUseOnlyCurrentObjects();
         int verboseDefault            = ph.getVerbose();
 
         // Instantiate an instance of the ColorTermCoeffs class...
@@ -255,6 +258,7 @@ public class PhotomEqSolverRunDC5 {
         CmdLineParser.Option kdefaultOption        = parser.addDoubleOption("kdefault");
         CmdLineParser.Option kdefaultErrOption     = parser.addDoubleOption("kdefaultErr");
     	CmdLineParser.Option updateDBOption        = parser.addBooleanOption("updateDB");
+        CmdLineParser.Option useOnlyCurrentObjectsOption = parser.addBooleanOption("useOnlyCurrentObjects");
     	CmdLineParser.Option verboseOption         = parser.addIntegerOption('v', "verbose");
     	CmdLineParser.Option helpOption            = parser.addBooleanOption('h', "help");
     	CmdLineParser.Option paramFileOption       = parser.addStringOption("paramFile");
@@ -366,6 +370,8 @@ public class PhotomEqSolverRunDC5 {
      						kdefaultErrDefault = Double.parseDouble(field2);
      					} else if (field1.equals("updateDB")) {
      						updateDBDefault = Boolean.parseBoolean(field2);
+     					} else if (field1.equals("useOnlyCurrentObjects")) {
+     						useOnlyCurrentObjectsDefault = Boolean.parseBoolean(field2);
      					} else if (field1.equals("verbose")) {
      						verboseDefault = Integer.parseInt(field2);
      					} else if (field1.equals("bccdidArray")) {
@@ -491,6 +497,7 @@ public class PhotomEqSolverRunDC5 {
     	double kdefault = ((Double)parser.getOptionValue(kdefaultOption, new Double(kdefaultDefault))).doubleValue();
     	double kdefaultErr = ((Double)parser.getOptionValue(kdefaultErrOption, new Double(kdefaultErrDefault))).doubleValue();
     	Boolean updateDB = (Boolean)parser.getOptionValue(updateDBOption, updateDBDefault);
+    	Boolean useOnlyCurrentObjects = (Boolean)parser.getOptionValue(useOnlyCurrentObjectsOption, useOnlyCurrentObjectsDefault);
     	int verbose = ((Integer)parser.getOptionValue(verboseOption, new Integer(verboseDefault))).intValue();
     	
     	
@@ -628,6 +635,9 @@ public class PhotomEqSolverRunDC5 {
     	
     	ph.setupdateDB(updateDB);
     	if (localVerbose > 0) {System.out.println("updateDB="+ph.getupdateDB());}
+    	
+    	ph.setUseOnlyCurrentObjects(useOnlyCurrentObjects);
+    	if (localVerbose > 0) {System.out.println("useOnlyCurrentObjects="+ph.getUseOnlyCurrentObjects());}
     	
     	ph.setVerbose(verbose);   
     	if (localVerbose > 0) {System.out.println("verbose="+ph.getVerbose());}
