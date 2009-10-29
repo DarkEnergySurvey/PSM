@@ -191,7 +191,7 @@ public class PhotomEqSolverDC4 {
 		String query0 = "SELECT * FROM table(fPhotoStdsMatch(" + "'" + imageType
 				+ "', '" + imageNameFilter + "', " + "'" + nite + "', '"
 				+ filter + "', " + ccdid + ", " + magLo + ", " + magHi + ", '"
-				+ run + "', '" + project + "'))";
+				+ run + "', '" + project + "', 'ALL'))";
 		if (verbose > 1) {
 			System.out.println("query0 = " + query0);
 			System.out.println("");
