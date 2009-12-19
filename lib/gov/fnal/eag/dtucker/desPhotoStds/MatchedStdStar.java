@@ -24,6 +24,7 @@ public class MatchedStdStar {
 	private int image_id        = -1000;
 	private double x_image      = -1000.0;
 	private double y_image      = -1000.0;
+	private long object_id       = -1;
 
 	public double getAirmass() {
 		return airmass;
@@ -150,6 +151,12 @@ public class MatchedStdStar {
 	}
 	public void setY_image(double y_image) {
 		this.y_image = y_image;
+	}
+	public long getObject_id() {
+		return object_id;
+	}
+	public void setObject_id(long object_id) {
+		this.object_id = object_id;
 	}
 	
 }
