@@ -277,7 +277,7 @@ public class PhotomEqSolverDC5 {
 		if (verbose > 1) {
 			System.out
 					.println("Point  ccd_number  image_id  exposure_id  mjd_obs  object_id   x_image   y_image   standard_star_id  stdmag["
-							+ filter + "]  instmag  instmagErr  airmass  fieldName");
+							+ filter + "]  stdmag[" + cFilter + "]  instmag  instmagErr  airmass  fieldName");
 		}
 		int i = 0;
 		double[] stdmag = new double[filterList.length];
@@ -452,6 +452,7 @@ public class PhotomEqSolverDC5 {
 			mStdStar.setImage_id(image_id);
 			mStdStar.setX_image(x_image);
 			mStdStar.setY_image(y_image);
+			mStdStar.setObject_id(object_id);
 			mStdStarList[iccd].add(mStdStar);
 
 
@@ -459,7 +460,8 @@ public class PhotomEqSolverDC5 {
 				System.out.println("   " + i + " " + ccd_number + " "
 						+ image_id + " " + exposure_id + " " + mjd_obs + " " + 
 						+ object_id + " " + x_image + " " + y_image + " " + standard_star_id + " "
-						+ stdmag[filterIndex] + " " + instmag + " " + instmagErr + " " + airmass + " " + fieldName);
+						+ stdmag[filterIndex] + " " + stdmag[cFilterIndex] + " " 
+						+ instmag + " " + instmagErr + " " + airmass + " " + fieldName);
 			}
 
 			i++;
@@ -813,10 +815,13 @@ public class PhotomEqSolverDC5 {
 							double resNSigma = res / rms;
 							if (Math.abs(res) > nsigma * rms) {
 								if (verbose > 1) {
+									long object_id = mStdStar.getObject_id();
 									System.out
-									.println("        Removing outlier on CCD "
-											+ ccdIdArray[iccd]
-											             + " at airmass "
+									.println("        Removing outlier (object_id: " 
+														 + object_id +  
+														 ") on CCD "
+														 + ccdIdArray[iccd]
+														 + " at airmass "
 											             + airmass
 											             + " with residual "
 											             + res
@@ -826,6 +831,9 @@ public class PhotomEqSolverDC5 {
 							}
 						}
 					}
+					//if (verbose > 0) {
+						//System.out.println("ccd: " + ccdIdArray[iccd] + "\t" + "old size: " + size + "\t new size: " + mStdStarList[iccd].size());
+					//}
 				}
 
 				System.out.println("");
