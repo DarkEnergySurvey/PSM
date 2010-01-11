@@ -19,6 +19,7 @@ run             20081030000000_20081013  # the run parameter has replaced the ru
 url             jdbc:oracle:thin:@desdb.cosmology.illinois.edu:1521: 
 dbName          des
 debug           false         #if debug=true, the psmfit table is NOT updated
+stdTable        standard_stars  #name of standard stars table to be used
 
 #Parameters that deal with the fit
 stdColor0       0.53         #zeropoint color in m_inst-m_std = a + b*(stdColor-stdColor0) + kX
