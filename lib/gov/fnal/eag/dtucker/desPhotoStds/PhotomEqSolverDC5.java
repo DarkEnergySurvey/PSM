@@ -210,12 +210,12 @@ public class PhotomEqSolverDC5 {
 			query0 = "SELECT * FROM table(fPhotoStdsMatch(" + "'" + imageType
 			    + "', '" + imageNameFilter + "', " + "'" + nite + "', '"
 				+ filter + "', " + ccdid + ", " + magLo + ", " + magHi + ", '"
-				+ run + "', '" + project + "', 'CURRENT'))";
+				+ run + "', '" + project + "', 'CURRENT', '" + stdTable + "'))";
 		} else {
 			query0 = "SELECT * FROM table(fPhotoStdsMatch(" + "'" + imageType
 		    + "', '" + imageNameFilter + "', " + "'" + nite + "', '"
 			+ filter + "', " + ccdid + ", " + magLo + ", " + magHi + ", '"
-			+ run + "', '" + project + "', 'ALL'))";
+			+ run + "', '" + project + "', 'ALL', '" + stdTable + "'))";
 		}
 		if (verbose > 1) {
 			System.out.println("query0 = " + query0);
