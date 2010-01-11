@@ -57,6 +57,7 @@ public class PhotomEqSolverRunDC5 {
         double kdefaultErrDefault     = ph.getKdefaultErr();
         boolean updateDBDefault       = ph.getupdateDB();
         boolean useOnlyCurrentObjectsDefault = ph.getUseOnlyCurrentObjects();
+        String stdTableDefault        = ph.getStdTable();
         int verboseDefault            = ph.getVerbose();
         
         // Create output message...
@@ -95,6 +96,7 @@ public class PhotomEqSolverRunDC5 {
 				"   -v VALUE, --verbose VALUE     verbosity level (0, 1, 2, ...)        [default: " + verboseDefault + "] \n" + 
 				"   --updateDB                    include this flag if the database is to be updated directly \n" +
 				"   --useOnlyCurrentObjects       include this flag to use only objects in the OBJECTS_CURRENT table \n" + 
+				"   --stdTable VALUE              database std star table to use        [default: " + stdTableDefault + "] \n" +
 				"   -h, --help                    this message \n\n" + 
 				"   Example 1: \n" +
 				"      java gov.fnal.eag.dtucker.desPhotoStds.PhotomEqSolverRunDC5 --url jdbc:oracle:thin:@charon.ncsa.uiuc.edu:1521: --dbName des  -u myUserName -p myPassword -P BCS -n 20061223 -f g --ccdid 0 --magLo 15.0 --magHi 18.0 --niter 3 --nsigma 2.5 --imageType remap --imageNameFilter % --run 20080324000000_20061223 --psmVersion v_DC5 -v 2 --bsolve --ksolve \n\n" +
@@ -204,6 +206,7 @@ public class PhotomEqSolverRunDC5 {
         double kdefaultErrDefault     = ph.getKdefaultErr();
         boolean updateDBDefault       = ph.getupdateDB();
         boolean useOnlyCurrentObjectsDefault = ph.getUseOnlyCurrentObjects();
+        String stdTableDefault        = ph.getStdTable();
         int verboseDefault            = ph.getVerbose();
 
         // Instantiate an instance of the ColorTermCoeffs class...
@@ -260,6 +263,7 @@ public class PhotomEqSolverRunDC5 {
     	CmdLineParser.Option updateDBOption        = parser.addBooleanOption("updateDB");
         CmdLineParser.Option useOnlyCurrentObjectsOption = parser.addBooleanOption("useOnlyCurrentObjects");
     	CmdLineParser.Option verboseOption         = parser.addIntegerOption('v', "verbose");
+        CmdLineParser.Option stdTableOption        = parser.addStringOption("stdTable");
     	CmdLineParser.Option helpOption            = parser.addBooleanOption('h', "help");
     	CmdLineParser.Option paramFileOption       = parser.addStringOption("paramFile");
 
@@ -374,6 +378,8 @@ public class PhotomEqSolverRunDC5 {
      						useOnlyCurrentObjectsDefault = Boolean.parseBoolean(field2);
      					} else if (field1.equals("verbose")) {
      						verboseDefault = Integer.parseInt(field2);
+     					} else if (field1.equals("stdTable")) {
+     						stdTableDefault = field2;
      					} else if (field1.equals("bccdidArray")) {
      						
      						if (ignoreParamFileBTermInfo == false) {
@@ -498,6 +504,7 @@ public class PhotomEqSolverRunDC5 {
     	double kdefaultErr = ((Double)parser.getOptionValue(kdefaultErrOption, new Double(kdefaultErrDefault))).doubleValue();
     	Boolean updateDB = (Boolean)parser.getOptionValue(updateDBOption, updateDBDefault);
     	Boolean useOnlyCurrentObjects = (Boolean)parser.getOptionValue(useOnlyCurrentObjectsOption, useOnlyCurrentObjectsDefault);
+    	String stdTable = (String)parser.getOptionValue(stdTableOption, stdTableDefault);
     	int verbose = ((Integer)parser.getOptionValue(verboseOption, new Integer(verboseDefault))).intValue();
     	
     	
@@ -639,6 +646,9 @@ public class PhotomEqSolverRunDC5 {
     	ph.setUseOnlyCurrentObjects(useOnlyCurrentObjects);
     	if (localVerbose > 0) {System.out.println("useOnlyCurrentObjects="+ph.getUseOnlyCurrentObjects());}
     	
+    	ph.setStdTable(stdTable);   
+    	if (localVerbose > 0) {System.out.println("stdTable="+ph.getStdTable());}
+    	
     	ph.setVerbose(verbose);   
     	if (localVerbose > 0) {System.out.println("verbose="+ph.getVerbose());}
     	
@@ -647,7 +657,7 @@ public class PhotomEqSolverRunDC5 {
     	// there are no command line options available to them.
     	// Nonetheless, we set them here...
     	ph.setSqlDriver("oracle.jdbc.driver.OracleDriver");
-    	ph.setStdTable("standard_stars");
+    	//ph.setStdTable("standard_stars");
     	ph.setObsTable("OBJECTS");
     	//ph.setObsTable("ALL_OBJECTS");
     	//ph.setObsTable("OBJECTS_2008");
