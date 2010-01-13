@@ -373,10 +373,15 @@ public class PhotomEqSolverDC5 {
 			double y_image = (double) rs2.getDouble(7);
 			rs2.close();
 			
-			// If the error in this star's instrumental mag is too large, skip it
-			if (instmagErr >= 0.20) {
+			// If this star's instrumental mag is too small or too large, skip it
+			if (instmag <= 0.0 || instmag >= 99.) {
 				continue;
 			}
+			// If the error in this star's instrumental mag is too small or too large, skip it
+			if (instmagErr <= 0.0 || instmagErr >= 0.20) {
+				continue;
+			}
+			
 			
 			// If this star lies in one of the excluded imageid's, skip it
 			if (imageidExcludeArrayList.contains(image_id) == true) {
