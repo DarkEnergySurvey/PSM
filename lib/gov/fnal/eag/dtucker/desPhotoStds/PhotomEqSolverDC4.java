@@ -283,9 +283,19 @@ public class PhotomEqSolverDC4 {
 			
 			double exptime = (double) rs0.getFloat("exptime");
 			double instmag = (double) rs0.getFloat("mag_aper_5");
+			double instmagErr = (double) rs0.getFloat("magerr_aper_5");
 			double zeropoint = (double) rs0.getFloat("zeropoint");
 			double airmass = (double) rs0.getFloat("airmass");
 
+			// If this star's instrumental mag is too small or too large, skip it
+			if (instmag <= 0.0 || instmag >= 99.) {
+				continue;
+			}
+			// If the error in this star's instrumental mag is too small or too large, skip it
+			if (instmagErr <= 0.0 || instmagErr >= 0.20) {
+				continue;
+			}
+			
 			//if (airmass < 1.05) {continue;}
 			
 			instmag = instmag - zeropoint;
