@@ -2264,7 +2264,7 @@ public class PhotomEqSolverDC5 {
 	/**
 	 * @return Returns the updateDB.
 	 */
-	public boolean getupdateDB() {
+	public boolean getUpdateDB() {
 		return updateDB;
 	}
 
@@ -2272,7 +2272,7 @@ public class PhotomEqSolverDC5 {
 	 * @param updateDB
 	 *            The updateDB to set.
 	 */
-	public void setupdateDB(boolean updateDB) {
+	public void setUpdateDB(boolean updateDB) {
 		this.updateDB = updateDB;
 	}
 
@@ -2363,26 +2363,6 @@ public class PhotomEqSolverDC5 {
 	}
 
 
-	public boolean isUpdateDB() {
-		return updateDB;
-	}
-
-
-	public void setUpdateDB(boolean updateDB) {
-		this.updateDB = updateDB;
-	}
-
-
-	public boolean isAsolve() {
-		return asolve;
-	}
-
-
-	public void setAsolve(boolean asolve) {
-		this.asolve = asolve;
-	}
-
-
 	public double getAdefault() {
 		return adefault;
 	}
@@ -2413,12 +2393,9 @@ public class PhotomEqSolverDC5 {
 	}
 
 	public boolean getUseOnlyCurrentObjects() {
-		return updateDB;
-	}
-	public boolean isUseOnlyCurrentObjects() {
 		return useOnlyCurrentObjects;
 	}
-
+	
 	public void setUseOnlyCurrentObjects(boolean useOnlyCurrentObjects) {
 		this.useOnlyCurrentObjects = useOnlyCurrentObjects;
 	}

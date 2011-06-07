@@ -55,7 +55,7 @@ public class PhotomEqSolverRunDC5 {
         boolean ksolveDefault         = ph.getKsolve();
         double kdefaultDefault        = ph.getKdefault();
         double kdefaultErrDefault     = ph.getKdefaultErr();
-        boolean updateDBDefault       = ph.getupdateDB();
+        boolean updateDBDefault       = ph.getUpdateDB();
         boolean useOnlyCurrentObjectsDefault = ph.getUseOnlyCurrentObjects();
         String stdTableDefault        = ph.getStdTable();
         int verboseDefault            = ph.getVerbose();
@@ -204,7 +204,7 @@ public class PhotomEqSolverRunDC5 {
         boolean ksolveDefault         = ph.getKsolve();
         double kdefaultDefault        = ph.getKdefault();
         double kdefaultErrDefault     = ph.getKdefaultErr();
-        boolean updateDBDefault       = ph.getupdateDB();
+        boolean updateDBDefault       = ph.getUpdateDB();
         boolean useOnlyCurrentObjectsDefault = ph.getUseOnlyCurrentObjects();
         String stdTableDefault        = ph.getStdTable();
         int verboseDefault            = ph.getVerbose();
@@ -640,8 +640,8 @@ public class PhotomEqSolverRunDC5 {
     	ph.setKdefaultErr(kdefaultErr);
     	if (localVerbose > 0) {System.out.println("kdefaultErr="+ph.getKdefaultErr());}
     	
-    	ph.setupdateDB(updateDB);
-    	if (localVerbose > 0) {System.out.println("updateDB="+ph.getupdateDB());}
+    	ph.setUpdateDB(updateDB);
+    	if (localVerbose > 0) {System.out.println("updateDB="+ph.getUpdateDB());}
     	
     	ph.setUseOnlyCurrentObjects(useOnlyCurrentObjects);
     	if (localVerbose > 0) {System.out.println("useOnlyCurrentObjects="+ph.getUseOnlyCurrentObjects());}
@@ -658,7 +658,11 @@ public class PhotomEqSolverRunDC5 {
     	// Nonetheless, we set them here...
     	ph.setSqlDriver("oracle.jdbc.driver.OracleDriver");
     	//ph.setStdTable("standard_stars");
-    	ph.setObsTable("OBJECTS");
+    	if (useOnlyCurrentObjects) {
+    		ph.setObsTable("OBJECTS_CURRENT");
+    	} else {
+    		ph.setObsTable("OBJECTS");
+    	}
     	//ph.setObsTable("ALL_OBJECTS");
     	//ph.setObsTable("OBJECTS_2008");
     	//ph.setObsTable("OBJECTS_ALL");
