@@ -11,6 +11,8 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.net.InetAddress;
+import java.net.URL;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Date;
@@ -149,15 +151,36 @@ public class PhotomEqSolverRunDC5 {
         	}
         }
         //System.out.println("ignoreParamFileBTermInfo="+ignoreParamFileBTermInfo);
-    	    	
+    	
         if (localVerbose > 0) {
         	System.out.println("PhotomEqSolverRunDC5 \n");
         }
  
+        if (localVerbose > 0) {
+        	
+            System.out.println("Some run-time parameter values:");
+
+            String psmHome = System.getenv("DESPHOTOSTDSMOD_HOME");
+            System.out.println("\tDESPHOTOSTDSMOD_HOME:  \t" + psmHome);
+            
+            String javaHome = System.getProperty("java.home");
+            System.out.println("\tJAVA_HOME:  \t\t" + javaHome);
+            
+            URL classLocation = PhotomEqSolverRunDC5.class.getResource("PhotomEqSolverRunDC5.class");
+            System.out.println("\tClass location:  \t" + classLocation);
+
+            InetAddress addr = InetAddress.getLocalHost();
+            String hostName = addr.getHostName();
+            System.out.println("\tHOSTNAME:  \t\t" + hostName);
+            
+            System.out.println("");
+
+        }
+        
 		if (localVerbose > 0) {
 			System.out.println("localVerbose = " + localVerbose  + "\n");
 		}
-        
+        		
         if (localVerbose > 0) {
         	System.out.print("arglist:  ");
         	for (int i=0; i< args.length; i++) {
