@@ -8,10 +8,17 @@ HOW TO RUN THE PHOTOMETRIC STANDARDS MODULE (PSM) OUTSIDE OF OGRE/ELF
    For example:
 
     (a) on deslogin.cosmology.illinois.edu: 
+
+        csh:  setenv DESPHOTOSTDSMOD_HOME /home/bcs/desdm/devel/PSM/trunk
+        bash: export DESPHOTOSTDSMOD_HOME=/home/bcs/desdm/devel/PSM/trunk
+
+        or, in DLT's account:
+ 
         csh:  setenv DESPHOTOSTDSMOD_HOME /home/dtucker/PSM/trunk
         bash: export DESPHOTOSTDSMOD_HOME=/home/dtucker/PSM/trunk
+        
 
-    (b) on my Mac OSX laptop:
+    (b) on DLT's Mac OSX laptop:
         csh:  setenv DESPHOTOSTDSMOD_HOME /Users/dtucker/DESDM/PSM/trunk
         bash: export DESPHOTOSTDSMOD_HOME=/Users/dtucker/DESDM/PSM/trunk
 
@@ -25,7 +32,8 @@ HOW TO RUN THE PHOTOMETRIC STANDARDS MODULE (PSM) OUTSIDE OF OGRE/ELF
         csh:  setenv JAVA_HOME /home/opt/jdk1.6.0_06
         bash: export JAVA_HOME=/home/opt/jdk1.6.0_06
 
-    (b) on my Mac OSX laptop:
+
+    (b) on DLT's Mac OSX laptop:
         csh:  setenv JAVA_HOME /System/Library/Frameworks/JavaVM.framework/Versions/1.6/Home
         bash: export JAVA_HOME=/System/Library/Frameworks/JavaVM.framework/Versions/1.6/Home
 
