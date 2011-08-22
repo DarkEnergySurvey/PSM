@@ -1,0 +1,163 @@
+==============================================================================
+HOW TO RUN THE PHOTOMETRIC STANDARDS MODULE (PSM) OUTSIDE OF OGRE/ELF
+==============================================================================
+
+1. Set the DESPHOTOSTDSMOD_HOME environment variable to the
+   top level directory of the DESPhotoStdsMod product. 
+
+   For example:
+
+    (a) on deslogin.cosmology.illinois.edu: 
+
+        csh:  setenv DESPHOTOSTDSMOD_HOME /home/bcs/desdm/devel/PSM/trunk
+        bash: export DESPHOTOSTDSMOD_HOME=/home/bcs/desdm/devel/PSM/trunk
+
+        or, in DLT's account:
+ 
+        csh:  setenv DESPHOTOSTDSMOD_HOME /home/dtucker/PSM/trunk
+        bash: export DESPHOTOSTDSMOD_HOME=/home/dtucker/PSM/trunk
+        
+
+    (b) on DLT's Mac OSX laptop:
+        csh:  setenv DESPHOTOSTDSMOD_HOME /Users/dtucker/DESDM/PSM/trunk
+        bash: export DESPHOTOSTDSMOD_HOME=/Users/dtucker/DESDM/PSM/trunk
+
+
+2. Set the JAVA_HOME environment variable to the top level 
+   directory of java jdk.
+
+   For example: 
+
+    (a) on deslogin.cosmology.illinois.edu:
+        csh:  setenv JAVA_HOME /home/opt/jdk1.6.0_06
+        bash: export JAVA_HOME=/home/opt/jdk1.6.0_06
+
+
+    (b) on DLT's Mac OSX laptop:
+        csh:  setenv JAVA_HOME /System/Library/Frameworks/JavaVM.framework/Versions/1.6/Home
+        bash: export JAVA_HOME=/System/Library/Frameworks/JavaVM.framework/Versions/1.6/Home
+
+
+3. Change to the $DESPHOTOSTDSMOD_HOME directory:
+       cd $DESPHOTOSTDSMOD_HOME
+
+
+4. Source the setup script:
+       csh:  source bin/setup.csh
+       bash: source bin/setup.bash
+
+
+5. Change to the directory in which you will run PSM.
+
+   For example, on my Mac OSX laptop: 
+   cd /Users/dtucker/DESDM/DESDMtests/PSMtests/PSMTests/DC6
+
+   You may wish to copy the default PSM parameter files from
+     $DESPHOTOSTDSMOD_HOME/lib/gov/fnal/eag/dtucker/desPhotoStds/params
+   into your working directory.
+
+
+6. Check out the PSM help (optional):
+
+   java gov.fnal.eag.dtucker.desPhotoStds.PhotomEqSolverRunDC6 --help
+
+
+7. Run the PSM.
+
+   For example, the following commands run the PSM on the BCS night bcs061223
+   (the following assume that you have a .desdm file in your home directory; 
+    otherwise, use the --user (-u) and --passwd (-p) arguments in the command line):
+
+   java gov.fnal.eag.dtucker.desPhotoStds.PhotomEqSolverRunDC6 -P BCS -n 20061223 --run 20080324000000_20061223 --paramFile ./psmParam_bcs_g.par --bsolve --ksolve --magType mag_aper_5 > ./output.bcs061223g.log &
+
+   tail -f output.bcs061223g.log
+
+   java gov.fnal.eag.dtucker.desPhotoStds.PhotomEqSolverRunDC6 -P BCS -n 20061223 --run 20080324000000_20061223 --paramFile ./psmParam_bcs_r.par --bsolve --ksolve --magType mag_psf > ./output.bcs061223r.log &
+
+   tail -f output.bcs061223r.log
+
+   java gov.fnal.eag.dtucker.desPhotoStds.PhotomEqSolverRunDC6 -P BCS -n 20061223 --run 20080324000000_20061223 --paramFile ./psmParam_bcs_i.par --bsolve --ksolve --magType mag_aper_3 > ./output.bcs061223i.log &
+
+   tail -f output.bcs061223i.log
+
+   java gov.fnal.eag.dtucker.desPhotoStds.PhotomEqSolverRunDC6 -P BCS -n 20061223 --run 20080324000000_20061223 --paramFile ./psmParam_bcs_z.par --bsolve --ksolve > ./output.bcs061223z.log &
+
+   tail -f output.bcs061223z.log
+
+
+   (If you want to update the PSMFIT table directly in the DES database, include the 
+    "--updateDB" option in the above commands.)
+
+   (And, if you want to skip the generation and output of the PSM QA plots, include the 
+    "--skipQAPlots" option in the above commands.)
+
+8. Check out the Quality Assurance (QA) plots (only applicable if the "--skipQAPlots" 
+   option was not used in Step 7 above).  
+   The "PSM_QA_res_vs_*.jpg" files are the most interesting.
+
+
+9. Check out the FITS binary table containing the results ("psmfitInput.fits").
+
+
+10. Check out the new entries in the PSMFIT table (only applicable if the 
+    "--updateDB" option was used in Step 7 above).
+
+   The PSMFIT table has the following format:
+
+    Name                           Null     Type     
+    ------------------------------ -------- -------------
+    PSMFIT_ID                      NOT NULL NUMBER(5)    
+    NITE                                    VARCHAR2(12) 
+    MJDLO                                   NUMBER(15,10)
+    MJDHI                                   NUMBER(15,10)
+    CCDID                                   NUMBER(4)    
+    FILTER                                  VARCHAR2(8)  
+    A                                       NUMBER(10,6) 
+    AERR                                    NUMBER(10,6) 
+    B                                       NUMBER(10,6) 
+    BERR                                    NUMBER(10,6) 
+    K                                       NUMBER(10,6) 
+    KERR                                    NUMBER(10,6) 
+    RMS                                     NUMBER(10,6) 
+    CHI2                                    NUMBER(10,6) 
+    DOF                                     NUMBER(12)    
+    PHOTOMETRICFLAG                         NUMBER(2)    
+    PSMVERSION                              VARCHAR2(20) 
+    FIT_TIMESTAMP                           TIMESTAMP(1) 
+    CFILTER                                 VARCHAR2(8)  
+    STDCOLOR0                               NUMBER(10,6) 
+    ASOLVE                                  NUMBER(2)    
+    BSOLVE                                  NUMBER(2)    
+    KSOLVE                                  NUMBER(2)    
+    RUN                                     VARCHAR2(100)
+    PROJECT                                 VARCHAR2(20) 
+    MAG_TYPE                                VARCHAR2(15) 
+
+
+
+
+
+
+==============================================================================
+UNIT TESTS
+==============================================================================
+
+Unfortunately, as of this writing (4 Sep 2009), only one PSM unit test is
+working.  This is DESDMFileTest, which tests the methods in the DESDMFile
+class.  To run the unit test:
+
+1. Make sure all your environment and classpath variables are set correctly.
+   If you have run steps 1-4 of "HOW TO RUN THE PHOTOMETRIC STANDARDS MODULE 
+   (PSM) OUTSIDE OF OGRE/ELF" above, you are ready.  If not, then run steps
+    1-4 of "HOW TO RUN..." above.
+
+2. Run:
+    java junit.textui.TestRunner gov.fnal.eag.dtucker.desPhotoStds.test.DESDMFileTest
+
+   You should get some output to the screen, ending with:
+   "OK (2 tests)"
+
+   If you get an OK on both tests, all the unit tests have passed.
+
+
+

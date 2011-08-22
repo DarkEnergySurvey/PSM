@@ -1,3 +1,30 @@
+PSM v_DC6 (23 Aug 2009)
+----------------------
+
+1.  Updated format of the jdbc URL to accommodate access to the new cluster 
+    database.
+
+2.  Added a command-line option ("--skipQAPlots") to skip the generation of 
+    the QA plots (JIRA issue DES-2330).
+
+3.  Made DECam focal plane the default option for the mag residuals vs. 
+    x,y position on the focal plane QA plot (JIRA issue DES-2329).
+
+4.  Changed all references to/queries for X_IMAGE,Y_IMAGE (which have been
+    dropped in the IMAGE table in the new cluster database) to references to/
+    queries for XWIN_IMAGE,YWIN_IMAGE.  (This really only affects the mag
+    residuals vs. x,y position on the focal plane QA plot, and only 
+    marginally, and XWIN_IMAGE,YWIN_IMAGE were probably preferable to begin
+    with.)
+
+5.  Commented out url and dbName in the psmParam_des_*.par files.  Although
+    these parameters can be used in these parameter files, it is probably
+    better to obtain them from the .desdm file.  The url and dbName have 
+    not been commented out from the psmParam_bcs_*.par and 
+    psmParam_preDC4_bcs_*.par files, however.
+  
+
+
 PSM v_DC5 (2 Oct 2009)
 ----------------------
 
