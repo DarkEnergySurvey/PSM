@@ -1,0 +1,252 @@
+#!/usr/bin/perl
+########################################################################
+#  $Id$
+#
+#  $Rev::                                  $:  # Revision of last commit.
+#  $LastChangedBy::                        $:  # Author of last commit. 
+#  $LastChangedDate::                      $:  # Date of last commit.
+#
+#  Developed at: 
+#  The National Center for Supercomputing Applications (NCSA)
+#
+#  Copyright (C) 2007 Board of Trustees of the University of Illinois. 
+#  All rights reserved.
+#
+#  DESCRIPTION:
+#      Runs PSM for each band without updating DB checking that the
+#      rms is less than specified max and that there are results for
+#      all CCDs.  If all bands pass, then reruns updating DB.
+#
+#      Currently only works for DECam data:
+#      - uses des param files regardless of project
+#      - assumes 62 CCDs
+#
+#      Any command-line arguments not used by this wrapper are passed
+#      directly to PSM
+#
+#      Assumes PSM is installed in $DES_HOME/share/java/PSM
+#      Reads DB connection info from ~/.desdm file.  Info can be overrode
+#          on command line or in PSM param file
+#
+#######################################################################
+
+use strict;
+use warnings;
+
+use Data::Dumper;
+use Getopt::Long;
+use File::Copy;
+use File::Path;
+
+use FindBin;
+use lib ("$FindBin::Bin/../lib", "$FindBin::Bin/../lib/perl5");
+
+use DB::EventUtils;
+
+# turn buffering off on STDOUT by making the filehandle hot
+$|=1;
+
+my ($project, $nite, $run, $photflag, $qadir, $help);
+my $verbose = 1;
+my $maxrms = 0.01;
+my @bands=();
+my $updatedb = undef;
+
+&Getopt::Long::Configure( 'noignorecase', 'no_autoabbrev', 'passthrough');
+Getopt::Long::GetOptions(
+    'bands=s'  => \@bands,
+    'help' => \$help,
+    'maxrms=s'  => \$maxrms,
+    'nite=s'  => \$nite,
+    'photflag=i'  => \$photflag,
+    'project=s'  => \$project,
+    'qadir=s'   => \$qadir,
+    'run=s'  => \$run,
+    'updateDB' => \$updatedb,   # match case of PSM argument
+    'verbose=i' => \$verbose,
+);
+
+if (!defined($ENV{'DES_HOME'})) {
+    reportEvent($verbose, "STATUS", 5, "Error: DES_HOME not defined in environment");
+    exit 1;
+}
+my $deshome = $ENV{'DES_HOME'};
+my $basepath="$deshome/share/java/PSM";
+my $classpath=$basepath;
+my @listjars=<$basepath/*.jar>;
+foreach my $j (@listjars) {
+    $classpath.=":$j";
+}
+$classpath.="::";
+$ENV{'CLASSPATH'} = $classpath;
+
+if (defined($help)) {
+    print "Usage: runPSM [wrapper options] [PSM options]\n";
+    print "\tWRAPPER OPTIONS\n";
+    print "\t-bands b1,b2,b3\tPSM is run on each band in list (default g,r,i,z,Y)\n"; 
+    print "\t-help\t\tprint usage for wrapper and PSM\n";
+    print "\t-maxrms val\t\tIf rms calculated by PSM is greater than val for any band, then PSM is not run with -updateDB option (default 0.01)\n";
+    print "\t-nite n\t\t\n";
+    print "\t-photflag f\tIf photflag is 0, then runPSM just exits without running PSM\n";
+    print "\t-project\t\t\n";
+    print "\t-qadir dir\tMoves QA files output by PSM to this directory\n";
+    print "\t-run\t\t\n";
+    print "\t-updatedb\t\tIf on command line, after checks, PSM is rerun with --updateDB option\n";
+    print "\t-verbose v\t\t\n";
+    print "\n\n";
+    my $out = `java gov.fnal.eag.dtucker.desPhotoStds.PhotomEqSolverRunDC6 --help`;
+    print "$out\n";
+    exit 0; 
+}
+
+my $out = `echo \$CLASSPATH`;
+print "$out\n";
+
+if (!defined($project)) {
+    reportEvent($verbose, "STATUS", 5, "Error:  Must specify project");
+    exit 1;
+}
+
+if (!defined($nite)) {
+    reportEvent($verbose, "STATUS", 5, "Error:  Must specify nite");
+    exit 1;
+}
+
+if (!defined($run)) {
+    reportEvent($verbose, "STATUS", 5, "Error:  Must specify run");
+    exit 1;
+}
+
+if (!defined($photflag)) {
+    reportEvent($verbose, "STATUS", 5, "Error:  Must specify photflag");
+    exit 1;
+}
+
+if (($photflag != 0) && ($photflag != 1)) {
+    reportEvent($verbose, "STATUS", 5, "Error:  Invalid photflag ($photflag)");
+    exit 1;
+}
+
+if ($photflag == 0) {
+    reportEvent($verbose, "STATUS", 4, "Warning: Not running PSM since photflag is 0");
+    exit 0;
+}
+
+
+if (scalar(@bands) == 0) {
+    @bands=('g','r','i','z','Y');
+}
+else {
+    @bands = split(/,/,join(',',@bands));
+}
+print "Running PSM for bands: ", join(',',@bands), "\n";
+
+
+#my $cmd = "java gov.fnal.eag.dtucker.desPhotoStds.PhotomEqSolverRunDC5 -P $project -n $nite --run $run --ccdid 0 --niter 3 --imageType red --bsolve --ksolve --magType mag_psf -v 2 --useOnlyCurrentObjects";
+my $basecmd = "java gov.fnal.eag.dtucker.desPhotoStds.PhotomEqSolverRunDC6 -P $project -n $nite --run $run "; 
+
+my $otherargs = "";
+if (scalar(@ARGV) > 0) {
+    my $otherargs = join(' ', @ARGV);
+    $basecmd .= " $otherargs";
+}
+
+print "Testing PSM for bands ", join(',',@bands), "\n";
+my $failedQA = 0;
+foreach my $b (@bands) {
+    my $paramfile = "$basepath/gov/fnal/eag/dtucker/desPhotoStds/params/psmParam_des_$b.par";
+    if (! -r $paramfile) {
+        reportEvent($verbose, "STATUS", 5, "Error:  Could not find param file for band $b\n($paramfile)");
+        exit 1;
+    }
+    my $cmd = "$basecmd -f $b --paramFile $paramfile";
+    reportEvent($verbose, "STATUS", 1, "$cmd");
+     
+    my $cntCCD = 0;
+    my $rms = 9999;
+    open (OUT, "$cmd 2>&1 |");
+    while (<OUT>) {
+        if (m/WARNING:/) {
+            print $_;
+        }
+        elsif (m/java.sql.SQLException/) {
+            reportEvent($verbose,"STATUS",5,$_);
+        }
+        elsif (m/^rms=([-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?)/) {
+            $rms = $1;
+            print $_;
+            reportEvent($verbose,"QA",1,"band=$b & rms=$rms");
+        }
+        elsif (m/for CCD/) {
+            print $_;
+            $cntCCD++;
+        }
+        else {
+            print $_;
+        }
+    }
+    close OUT;
+    my $exit = $?;
+    if ($exit != 0) {
+        reportEvent($verbose, "STATUS", 5, "Error:  non-zero exit code while running PSM for band $b");
+        exit 1;
+    }
+
+    if ($rms > $maxrms) {
+        reportEvent($verbose, "STATUS", 5, "rms too large for band $b (rms=$rms, maxrms=$maxrms)");
+        $failedQA = 1;
+    }
+    if ($cntCCD < 62) {
+        reportEvent($verbose,"STATUS",5,"not enough CCDs for band $b ($cntCCD)");
+        $failedQA = 1;
+    }
+}
+
+if (!$failedQA && $updatedb) {
+    print "Running PSM with updateDB for bands ", join(',',@bands), "\n";
+    foreach my $b (@bands) {
+        my $paramfile = "$basepath/gov/fnal/eag/dtucker/desPhotoStds/params/psmParam_des_$b.par";
+        if (! -r $paramfile) {
+            reportEvent($verbose, "STATUS", 5, "Error:  Could not find param file for band $b\n($paramfile)");
+            exit 1;
+        }
+        my $cmd = "$basecmd --skipQAPlots -f $b --paramFile $paramfile --updateDB";
+        reportEvent($verbose, "STATUS", 1, "$cmd");
+     
+        open (OUT, "$cmd 2>&1 |");
+        while (<OUT>) {
+            if (m/java.sql.SQLException/) {
+                reportEvent($verbose,"STATUS",5,$_);
+            }
+            else {
+                print $_;
+            }
+        }
+        close OUT;
+        my $exit = $?;
+        if ($exit != 0) {
+            reportEvent($verbose, "STATUS", 5, "Error:  non-zero exit code while running PSM for band $b");
+            exit 1;
+        }
+    }
+}
+
+# move QA files to QA archive directory
+if (defined($qadir)) {
+    if (! -d $qadir) {
+        print "Making QA archive directory.\n";
+        eval { mkpath($qadir) };
+        if ($@) {
+            reportEvent($verbose, "STATUS",5,"Error: Couldn’t create QA dir: $qadir: $@");
+            exit 1;
+        }
+    }
+    my @qafiles = <*QA*>;
+    for my $f (@qafiles) {
+        move ($f, "$qadir/$f");
+    }
+    move("psmfitInput.fits", "$qadir/psmfitInput.fits");
+}
+else {
+    reportEvent($verbose, "STATUS", 4, "Warning: qadir not defined.   Not moving QA files");
+}
