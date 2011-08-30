@@ -143,7 +143,7 @@ print "Running PSM for bands: ", join(',',@bands), "\n";
 
 
 #my $cmd = "java gov.fnal.eag.dtucker.desPhotoStds.PhotomEqSolverRunDC5 -P $project -n $nite --run $run --ccdid 0 --niter 3 --imageType red --bsolve --ksolve --magType mag_psf -v 2 --useOnlyCurrentObjects";
-my $basecmd = "java gov.fnal.eag.dtucker.desPhotoStds.PhotomEqSolverRunDC6 -P $project -n $nite --run $run "; 
+my $basecmd = "java -Djava.awt.headless=true gov.fnal.eag.dtucker.desPhotoStds.PhotomEqSolverRunDC6 -P $project -n $nite --run $run "; 
 
 my $otherargs = "";
 if (scalar(@ARGV) > 0) {
