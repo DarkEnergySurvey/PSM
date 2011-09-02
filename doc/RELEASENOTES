@@ -1,3 +1,5 @@
+
+
 PSM v_DC6 (23 Aug 2009)
 ----------------------
 
@@ -23,6 +25,11 @@ PSM v_DC6 (23 Aug 2009)
     not been commented out from the psmParam_bcs_*.par and 
     psmParam_preDC4_bcs_*.par files, however.
   
+6. (3 Sep 2011):  Included a new QA output -- a QA table that includes
+   the data that goes into the creation of the residual plots.  This table
+   also includes exposure_id (which is not currently part of the QA plot
+   output).
+
 
 
 PSM v_DC5 (2 Oct 2009)
