@@ -4,6 +4,7 @@ import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Font;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.sql.*;
 import java.util.ArrayList;
@@ -458,6 +459,7 @@ public class PhotomEqSolverDC6 {
 			mStdStar.setStdiz(stdmag[3]-stdmag[4]);
 			mStdStar.setStdzY(stdmag[4]-stdmag[5]);
 			mStdStar.setImage_id(image_id);
+			mStdStar.setExposure_id(exposure_id);
 			mStdStar.setX_image(x_image);
 			mStdStar.setY_image(y_image);
 			mStdStar.setObject_id(object_id);
@@ -1136,9 +1138,16 @@ public class PhotomEqSolverDC6 {
 		db.close();
 
 		
-		// Create and output general QA residual plots...
+		// Create and output general QA residual plots and table...
 		if (skipQAPlots == false) {
 
+			//Open up the residual table file...
+			String resTableFileName = "PSM_QA_res_" + nite + filter + ".txt";
+			File resTableFile = new File(resTableFileName);
+			FileWriter writer = new FileWriter(resTableFile);
+			writer.write("# res \t airmass \t mag \t stdColor \t ccdid \t mjd \t imageid \t exposureid \t X \t Y \n");
+			
+			//Instantiate xy data series for plots...
 			XYSeries series1 = new XYSeries("");
 			XYSeries series2 = new XYSeries("");
 			XYSeries series3 = new XYSeries("");
@@ -1173,10 +1182,11 @@ public class PhotomEqSolverDC6 {
 						//String fieldName = mStdStar.getFieldName();
 						double airmass = mStdStar.getAirmass();
 						double mag = mStdStar.getStdmag();
-						double ccd_number = mStdStar.getCcd_number();
+						int ccd_number = mStdStar.getCcd_number();
 						double deltamag = mStdStar.getDeltamag();
 						double mjd = mStdStar.getMjd();
-						double image_id = mStdStar.getImage_id();
+						int image_id = mStdStar.getImage_id();
+						int exposure_id = mStdStar.getExposure_id();
 
 						double x = mStdStar.getX_image() + (xCenter[iccd]-0.5*nAxis1[iccd]);
 						double y = mStdStar.getY_image() + (yCenter[iccd]-0.5*nAxis2[iccd]);
@@ -1219,6 +1229,10 @@ public class PhotomEqSolverDC6 {
 							}
 
 						}
+						
+						//Write entry to residual table file...
+						String outputLine = res + "\t" + airmass + "\t" + mag + "\t" + stdColor + "\t" + ccd_number + "\t" + mjd + "\t" + image_id + "\t" + exposure_id + "\t" + x + "\t" + y + "\n";
+						writer.write(outputLine);
 
 					}
 
@@ -1226,6 +1240,7 @@ public class PhotomEqSolverDC6 {
 
 			}
 
+			writer.close();
 
 			String qaPlotFile;
 
