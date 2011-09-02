@@ -22,6 +22,7 @@ public class MatchedStdStar {
 	private double fieldRA      = -1000.0;
 	private double fieldDec     = -1000.0; 
 	private int image_id        = -1000;
+	private int exposure_id     = -1000;
 	private double x_image      = -1000.0;
 	private double y_image      = -1000.0;
 	private long object_id       = -1;
@@ -157,6 +158,12 @@ public class MatchedStdStar {
 	}
 	public void setObject_id(long object_id) {
 		this.object_id = object_id;
+	}
+	public int getExposure_id() {
+		return exposure_id;
+	}
+	public void setExposure_id(int exposure_id) {
+		this.exposure_id = exposure_id;
 	}
 	
 }
