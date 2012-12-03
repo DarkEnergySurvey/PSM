@@ -17,16 +17,24 @@ run             20081030000000_20081013  # the run parameter has replaced the ru
 
 #Parameters that deal with the database
 #url             jdbc:oracle:thin:@desdb.cosmology.illinois.edu:1521:   # can be done here, better obtained via .desdm file
-#dbName          des            #can be done here, better obtained via .desdm file
-debug           false           #if debug=true, the psmfit table is NOT updated
-stdTable        standard_stars  #name of standard stars table to be used
+#dbName          des                #can be done here, better obtained via .desdm file
+debug           false               #if debug=true, the psmfit table is NOT updated
+stdTable        standard_stars_all  #name of standard stars table to be used
+standard_set_in    3                #which set of standards from stdTable to use: 
+                                    #    1=standard_stars (original)
+                                    #    2=standard_stars_dc5
+                                    #    3=standard_stars_sdss_sv_v1 (currently preferred)
 
 #Parameters that deal with the fit
 stdColor0       0.53         #zeropoint color in m_inst-m_std = a + b*(stdColor-stdColor0) + kX
-                             #in general, use 0.53 for filters g and r; use 0.09 for i and z; 0.05 for Y
+                             #in general, use 1.39 for u; use 0.53 for filters g and r; use 0.09 for i and z; 0.05 for Y
 
 magLo           15.0         #use only those standard stars with mags between magLo & magHi
 magHi           18.0
+
+stdColorLo      0.20         #use only those standard stars with g-r colors between stdColorLo & stdColorHi
+stdColorHi      1.00
+
 niterations     3            #number of iterations for sigma-clipping outlier rejection
 nsigma          2.5          #number of sigma for sigma-clipping outlier rejection
 
