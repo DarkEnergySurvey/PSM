@@ -76,7 +76,8 @@ public class PhotomEqSolverYear1 {
 	private String passwd = "dummy";
 	private String obsTable = "OBJECTS";
 	private String imageTable = "IMAGE";
-	private String stdTable = "standard_stars";
+	private String stdTable = "standard_stars_all";
+	private int standard_set_in = 3;
 	private String fitTable = "psmfit";
 
 	// Instance variables dealing with this execution of the Photometric 
@@ -109,7 +110,9 @@ public class PhotomEqSolverYear1 {
 	private boolean updateDB = false; //set to true if updating fitTable directly
 	private boolean useOnlyCurrentObjects = false; //set to true if only using objects from the OBJECTS_CURRENT table
 	
-	private double stdColor0   = 0.00;
+	private double stdColor0   = 0.00;   //reference or fiducial standard color
+	private double stdColorLo  = -1000.; //lower end of range of stdColors to consider in solution
+	private double stdColorHi  =  1000.; //upper end of range of stdColors to consider in solution
 	private double baseMagErr = 0.02; // minimum error assoc'd with the
                                       // observed mag
 	
@@ -160,7 +163,10 @@ public class PhotomEqSolverYear1 {
 		//Parameters needed for determination of b terms...
 		String cFilter = "";
 		String stdColorName = "";
-		if (filter.equals("g")) {
+		if (filter.equals("u")) {
+			cFilter = "g";
+			stdColorName = "u-g";
+		} else if (filter.equals("g")) {
 			cFilter = "r";
 			stdColorName = "g-r";
 		} else if (filter.equals("r")) {
@@ -206,26 +212,29 @@ public class PhotomEqSolverYear1 {
 		Class.forName(sqlDriver);
 		String fullURL = url + dbName;
 		Connection db = DriverManager.getConnection(fullURL, user, passwd);
-
+		
 		String query0;
 		if (useOnlyCurrentObjects) {
-			query0 = "SELECT * FROM table(fPhotoStdsMatch(" + "'" + imageType
+			query0 = "SELECT * FROM table(fPhotoStdsMatch2(" + "'" + imageType
 			    + "', '" + imageNameFilter + "', " + "'" + nite + "', '"
 				+ filter + "', " + ccdid + ", " + magLo + ", " + magHi + ", '"
-				+ run + "', '" + project + "', 'CURRENT', '" + stdTable + "'))";
+				+ run + "', '" + project + "', 'CURRENT', '" + stdTable + "'," + standard_set_in + "))";
 		} else {
-			query0 = "SELECT * FROM table(fPhotoStdsMatch(" + "'" + imageType
+			query0 = "SELECT * FROM table(fPhotoStdsMatch2(" + "'" + imageType
 		    + "', '" + imageNameFilter + "', " + "'" + nite + "', '"
 			+ filter + "', " + ccdid + ", " + magLo + ", " + magHi + ", '"
-			+ run + "', '" + project + "', 'ALL', '" + stdTable + "'))";
+			+ run + "', '" + project + "', 'ALL', '" + stdTable + "'," + standard_set_in + "))";
 		}
 		if (verbose > 1) {
 			System.out.println("query0 = " + query0);
 			System.out.println("");
 		}
 
+		//Update due to new standard star table and fPhotoStdsMatch2:
+		//String query1 = "SELECT * FROM " + stdTable
+		//+ " WHERE standard_star_id = ?";
 		String query1 = "SELECT * FROM " + stdTable
-				+ " WHERE standard_star_id = ?";
+		+ " WHERE id = ?";
 		PreparedStatement st1 = db.prepareStatement(query1);
 		if (verbose > 1) {
 			System.out.println("query1 = " + query1);
@@ -339,13 +348,13 @@ public class PhotomEqSolverYear1 {
 			// If the stdmag or the stdmagerr for the filter being 
 			// solved for doesn't make sense, then skip this std 
 			// star...
-			if (stdmag[filterIndex] < 0. || stdmagerr[filterIndex] < 0.) {
+			if (stdmag[filterIndex] < 0. || stdmag[filterIndex] > 30. || stdmagerr[filterIndex] < 0.) {
 				continue;
 			}
 			// If the stdmag or the stdmagerr for the cFilter for 
 			// the filter being solved for doesn't make sense, then 
 			// skip this std star...
-			if (stdmag[cFilterIndex] < 0. || stdmagerr[cFilterIndex] < 0.) {
+			if (stdmag[cFilterIndex] < 0. || stdmag[cFilterIndex] > 30. || stdmagerr[cFilterIndex] < 0.) {
 				continue;
 			}
 			
@@ -395,6 +404,21 @@ public class PhotomEqSolverYear1 {
 				continue;
 			}
 
+			// If this star's standard color falls outside the standard color range, skip it..
+			double stdColor = 0.;
+			if (filter.equals("u")) {
+				stdColor = stdmag[0]-stdmag[1];
+			} else if (filter.equals("g") || filter.equals("r")) {
+				stdColor = stdmag[1]-stdmag[2];
+			} else if (filter.equals("i") || filter.equals("z")) {
+				stdColor = stdmag[3]-stdmag[4];
+			} else if (filter.equals("Y")) {
+				stdColor = stdmag[4]-stdmag[5];
+			}
+			if (stdColor < stdColorLo || stdColor > stdColorHi) {
+				continue;
+			}
+			
 			// Calculate the deltamag of this observation of this star
 			instmag = instmag - zeropoint;
 			if (exptime > 0.) {
@@ -598,7 +622,9 @@ public class PhotomEqSolverYear1 {
 						double error = mStdStar.getDeltamagerr();
 						double weight = 1. / (error * error);
 						double stdColor = 0.0;
-						if (filter.equals("g") || filter.equals("r")) {
+						if (filter.equals("u")) {
+							stdColor = mStdStar.getStdug();
+						} else if (filter.equals("g") || filter.equals("r")) {
 							stdColor = mStdStar.getStdgr();
 						} else if (filter.equals("i") || filter.equals("z")) {
 							stdColor = mStdStar.getStdiz();
@@ -766,7 +792,9 @@ public class PhotomEqSolverYear1 {
 						double deltamag = mStdStar.getDeltamag();
 						double deltamagerr = mStdStar.getDeltamagerr();
 						double stdColor = stdColor0;
-						if (filter.equals("g") || filter.equals("r")) {
+						if (filter.equals("u")) {
+							stdColor = mStdStar.getStdug();
+						} else if (filter.equals("g") || filter.equals("r")) {
 							stdColor = mStdStar.getStdgr();
 						} else if (filter.equals("i") || filter.equals("z")) {
 							stdColor = mStdStar.getStdiz();
@@ -815,7 +843,9 @@ public class PhotomEqSolverYear1 {
 							double airmass = mStdStar.getAirmass();
 							double deltamag = mStdStar.getDeltamag();
 							double stdColor = 0.0;
-							if (filter.equals("g") || filter.equals("r")) {
+							if (filter.equals("u")) {
+								stdColor = mStdStar.getStdug();
+							} else if (filter.equals("g") || filter.equals("r")) {
 								stdColor = mStdStar.getStdgr();
 							} else if (filter.equals("i") || filter.equals("z")) {
 								stdColor = mStdStar.getStdiz();
@@ -1128,7 +1158,10 @@ public class PhotomEqSolverYear1 {
 		bhdu.setColumnName(24,"project",null);
 		bhdu.setColumnName(25,"magType",null);
 
-		BufferedFile bf = new BufferedFile("psmfitInput.fits", "rw");
+		//psmfitInput-$nite-$filter.fits
+		String psmfitInputFileName = "psmfitInput_" + nite + filter + ".fits";
+		//String psmfitInputFileName = "psmfitInput.fits";
+		BufferedFile bf = new BufferedFile(psmfitInputFileName, "rw");
 		f.write(bf);
 		bf.flush();
 		bf.close();
@@ -1192,7 +1225,9 @@ public class PhotomEqSolverYear1 {
 						double y = mStdStar.getY_image() + (yCenter[iccd]-0.5*nAxis2[iccd]);
 
 						double stdColor = stdColor0;
-						if (filter.equals("g") || filter.equals("r")) {
+						if (filter.equals("u")) {
+							stdColor = mStdStar.getStdug();
+						} else if (filter.equals("g") || filter.equals("r")) {
 							stdColor = mStdStar.getStdgr();
 						} else if (filter.equals("i") || filter.equals("z")) {
 							stdColor = mStdStar.getStdiz();
@@ -1670,7 +1705,7 @@ public class PhotomEqSolverYear1 {
 		
 		// Finis.
 		if (verbose > 0) {
-			System.out.println("A binary FITS table containing the results formatted for the " + fitTable + " table can be found in psmfitInput.fits");
+			System.out.println("A binary FITS table containing the results formatted for the " + fitTable + " table can be found in " + psmfitInputFileName);
 			System.out.println("");
 			System.out.println("That's all, folks!");
 			System.out.println("");
@@ -2437,6 +2472,30 @@ public class PhotomEqSolverYear1 {
 
 	public void setSkipQAPlots(boolean skipQAPlots) {
 		this.skipQAPlots = skipQAPlots;
+	}
+
+	public int getStandard_set_in() {
+		return standard_set_in;
+	}
+
+	public void setStandard_set_in(int standard_set_in) {
+		this.standard_set_in = standard_set_in;
+	}
+
+	public double getStdColorLo() {
+		return stdColorLo;
+	}
+
+	public void setStdColorLo(double stdColorLo) {
+		this.stdColorLo = stdColorLo;
+	}
+
+	public double getStdColorHi() {
+		return stdColorHi;
+	}
+
+	public void setStdColorHi(double stdColorHi) {
+		this.stdColorHi = stdColorHi;
 	}
 
 }
