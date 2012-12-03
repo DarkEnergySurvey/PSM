@@ -40,6 +40,8 @@ public class PhotomEqSolverRunYear1 {
         String niteDefault            = ph.getNite();
         String filterDefault          = ph.getFilter();
         double stdColor0Default       = ph.getStdColor0();
+        double stdColorLoDefault      = ph.getStdColorLo();
+        double stdColorHiDefault      = ph.getStdColorHi();
         int ccdidDefault              = ph.getCcdid();
         double magLoDefault           = ph.getMagLo();
         double magHiDefault           = ph.getMagHi();
@@ -61,6 +63,7 @@ public class PhotomEqSolverRunYear1 {
         boolean useOnlyCurrentObjectsDefault = ph.getUseOnlyCurrentObjects();
         boolean skipQAPlotsDefault    = ph.getSkipQAPlots();
         String stdTableDefault        = ph.getStdTable();
+        int standard_set_inDefault    = ph.getStandard_set_in();
         int verboseDefault            = ph.getVerbose();
         
         // Create output message...
@@ -80,6 +83,8 @@ public class PhotomEqSolverRunYear1 {
 				"   -f VALUE, --filter VALUE      name of filter in db                  [default: " + filterDefault + "] \n" +
 				"   -c VALUE, --ccdid VALUE       ccd number (0=all ccds)               [default: " + ccdidDefault + "] \n" + 
 				"   --stdColor0 VALUE             zeropoint color in photometric eqn.   [default: " + stdColor0Default + "] \n" +  
+				"   --stdColorLo VALUE            standard color limit (low/blue)       [default: " + stdColorLoDefault + "] \n" +  
+				"   --stdColorHi VALUE            standard color limit (high/red)       [default: " + stdColorHiDefault + "] \n" +  
 				"   --magLo VALUE                 mag limit (bright)                    [default: " + magLoDefault + "] \n" +
 				"   --magHi VALUE                 mag limit (faint)                     [default: " + magHiDefault + "] \n" +
 				"   --magType VALUE               mag type                              [default: " + magTypeDefault + "] \n" +
@@ -101,6 +106,7 @@ public class PhotomEqSolverRunYear1 {
 				"   --useOnlyCurrentObjects       include this flag to use only objects in the OBJECTS_CURRENT table \n" + 
 				"   --skipQAPlots                 skip generation of QA plots?          [default: " + skipQAPlotsDefault + "] \n" + 
 				"   --stdTable VALUE              database std star table to use        [default: " + stdTableDefault + "] \n" +
+				"   --standard_set_in VALUE       database std star table set to use    [default: " + standard_set_inDefault + "] \n" +
 				"   -h, --help                    this message \n\n" + 
 				"   Example 1: \n" +
 				"      java gov.fnal.eag.dtucker.desPhotoStds.PhotomEqSolverRunYear1 --url jdbc:oracle:thin:@charon.ncsa.uiuc.edu:1521: --dbName des  -u myUserName -p myPassword -P BCS -n 20061223 -f g --ccdid 0 --magLo 15.0 --magHi 18.0 --niter 3 --nsigma 2.5 --imageType remap --imageNameFilter % --run 20080324000000_20061223 --psmVersion v_Year1 -v 2 --bsolve --ksolve \n\n" +
@@ -212,6 +218,8 @@ public class PhotomEqSolverRunYear1 {
         String niteDefault            = ph.getNite();
         String filterDefault          = ph.getFilter();
         double stdColor0Default       = ph.getStdColor0();
+        double stdColorLoDefault      = ph.getStdColorLo();
+        double stdColorHiDefault      = ph.getStdColorHi();
         int ccdidDefault              = ph.getCcdid();
         double magLoDefault           = ph.getMagLo();
         double magHiDefault           = ph.getMagHi();
@@ -233,6 +241,7 @@ public class PhotomEqSolverRunYear1 {
         boolean useOnlyCurrentObjectsDefault = ph.getUseOnlyCurrentObjects();
         boolean skipQAPlotsDefault    = ph.getSkipQAPlots();
         String stdTableDefault        = ph.getStdTable();
+        int standard_set_inDefault    = ph.getStandard_set_in();
         int verboseDefault            = ph.getVerbose();
 
         // Instantiate an instance of the ColorTermCoeffs class...
@@ -269,6 +278,8 @@ public class PhotomEqSolverRunYear1 {
         CmdLineParser.Option niteOption            = parser.addStringOption('n', "nite");
         CmdLineParser.Option filterOption          = parser.addStringOption('f', "filter");
         CmdLineParser.Option stdColor0Option       = parser.addDoubleOption("stdColor0");
+        CmdLineParser.Option stdColorLoOption      = parser.addDoubleOption("stdColorLo");
+        CmdLineParser.Option stdColorHiOption      = parser.addDoubleOption("stdColorHi");
         CmdLineParser.Option ccdidOption           = parser.addIntegerOption('c', "ccdid");
         CmdLineParser.Option magLoOption           = parser.addDoubleOption("magLo");
         CmdLineParser.Option magHiOption           = parser.addDoubleOption("magHi");
@@ -291,7 +302,8 @@ public class PhotomEqSolverRunYear1 {
         CmdLineParser.Option skipQAPlotsOption     = parser.addBooleanOption("skipQAPlots");
     	CmdLineParser.Option verboseOption         = parser.addIntegerOption('v', "verbose");
         CmdLineParser.Option stdTableOption        = parser.addStringOption("stdTable");
-    	CmdLineParser.Option helpOption            = parser.addBooleanOption('h', "help");
+        CmdLineParser.Option standard_set_inOption = parser.addIntegerOption("standard_set_in");
+        CmdLineParser.Option helpOption            = parser.addBooleanOption('h', "help");
     	CmdLineParser.Option paramFileOption       = parser.addStringOption("paramFile");
 
 
@@ -365,6 +377,10 @@ public class PhotomEqSolverRunYear1 {
      						filterDefault = field2;
      					} else if (field1.equals("stdColor0")) {
      						stdColor0Default = Double.parseDouble(field2);
+     					} else if (field1.equals("stdColorLo")) {
+     						stdColorLoDefault = Double.parseDouble(field2);
+     					} else if (field1.equals("stdColorHi")) {
+     						stdColorHiDefault = Double.parseDouble(field2);
      					} else if (field1.equals("ccdid")) {
      						ccdidDefault = Integer.parseInt(field2);
      					} else if (field1.equals("magLo")) {
@@ -409,6 +425,8 @@ public class PhotomEqSolverRunYear1 {
      						verboseDefault = Integer.parseInt(field2);
      					} else if (field1.equals("stdTable")) {
      						stdTableDefault = field2;
+     					} else if (field1.equals("standard_set_in")) {
+     						standard_set_inDefault = Integer.parseInt(field2);
      					} else if (field1.equals("bccdidArray")) {
      						
      						if (ignoreParamFileBTermInfo == false) {
@@ -514,6 +532,8 @@ public class PhotomEqSolverRunYear1 {
     	String nite = (String)parser.getOptionValue(niteOption, niteDefault);
     	String filter = (String)parser.getOptionValue(filterOption, filterDefault);
     	double stdColor0 = ((Double)parser.getOptionValue(stdColor0Option, new Double(stdColor0Default))).doubleValue();
+    	double stdColorLo = ((Double)parser.getOptionValue(stdColorLoOption, new Double(stdColorLoDefault))).doubleValue();
+    	double stdColorHi = ((Double)parser.getOptionValue(stdColorHiOption, new Double(stdColorHiDefault))).doubleValue();
     	int ccdid = ((Integer)parser.getOptionValue(ccdidOption, new Integer(ccdidDefault))).intValue();
     	double magLo = ((Double)parser.getOptionValue(magLoOption, new Double(magLoDefault))).doubleValue();
     	double magHi = ((Double)parser.getOptionValue(magHiOption, new Double(magHiDefault))).doubleValue();
@@ -535,6 +555,7 @@ public class PhotomEqSolverRunYear1 {
     	Boolean useOnlyCurrentObjects = (Boolean)parser.getOptionValue(useOnlyCurrentObjectsOption, useOnlyCurrentObjectsDefault);
     	Boolean skipQAPlots = (Boolean)parser.getOptionValue(skipQAPlotsOption, skipQAPlotsDefault);
     	String stdTable = (String)parser.getOptionValue(stdTableOption, stdTableDefault);
+    	int standard_set_in = ((Integer)parser.getOptionValue(standard_set_inOption, new Integer(standard_set_inDefault))).intValue();
     	int verbose = ((Integer)parser.getOptionValue(verboseOption, new Integer(verboseDefault))).intValue();
     	
     	
@@ -593,6 +614,12 @@ public class PhotomEqSolverRunYear1 {
     	ph.setStdColor0(stdColor0);
     	if (localVerbose > 0) {System.out.println("stdColor0="+ph.getStdColor0());}
     	
+    	ph.setStdColorLo(stdColorLo);
+    	if (localVerbose > 0) {System.out.println("stdColorLo="+ph.getStdColorLo());}
+
+    	ph.setStdColorHi(stdColorHi);
+    	if (localVerbose > 0) {System.out.println("stdColorHi="+ph.getStdColorHi());}
+
     	ph.setCcdid(ccdid);
     	if (localVerbose > 0) {System.out.println("ccdid="+ph.getCcdid());}
     	
@@ -681,6 +708,9 @@ public class PhotomEqSolverRunYear1 {
     	
     	ph.setStdTable(stdTable);   
     	if (localVerbose > 0) {System.out.println("stdTable="+ph.getStdTable());}
+    	
+    	ph.setStandard_set_in(standard_set_in);   
+    	if (localVerbose > 0) {System.out.println("standard_set_in="+ph.getStandard_set_in());}
     	
     	ph.setVerbose(verbose);   
     	if (localVerbose > 0) {System.out.println("verbose="+ph.getVerbose());}
