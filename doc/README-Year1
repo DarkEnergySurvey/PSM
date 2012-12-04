@@ -59,7 +59,7 @@ HOW TO RUN THE PHOTOMETRIC STANDARDS MODULE (PSM) OUTSIDE OF OGRE/ELF
 
 7. Run the PSM.
 
-   For example, the following commands run the PSM on the BCS night bcs061223
+   For example, the following commands run the PSM on the DES SV night 20121101
    (the following assume that you have a .desdm file in your home directory; 
     otherwise, use the --user (-u) and --passwd (-p) arguments in the command line):
 
@@ -76,6 +76,28 @@ HOW TO RUN THE PHOTOMETRIC STANDARDS MODULE (PSM) OUTSIDE OF OGRE/ELF
 
    (And, if you want to skip the generation and output of the PSM QA plots, include the 
     "--skipQAPlots" option in the above commands.)
+
+   Note that in previous versions of PSM, you could indicate the name of the standard stars
+   table either in the parameter file or on the command-line.  You can still do this, but
+   now all standard star tables have been combined into a single table, and they are 
+   distinguished by their ID.  To choose a certain set of standard stars, use the
+   standard_set_in keyword, either in the parameter file or in the command line.  The 
+   choices currently are the following
+
+   1=standard_stars (the contents of the original standard_stars table)
+
+   2=standard_stars_dc5 (the contents of the DC5 standard_stars table)
+
+   3=standard_stars_sdss_sv_v1 (the contents of the SV standard stars table, 
+                                in the SDSS system, that was provided a few
+                                weeks ago and contains full Y-band coverage
+                                of SDSS Stripe 82)
+
+   Also, although you can specify the standard star color range you want to use
+   (via the --stdColorLo and --stdColorHi keywords), the default values (given 
+   in the default parameter files) seem to do a good job; so there should be
+   no need in general to use these particular keywords.
+
 
 8. Check out the Quality Assurance (QA) plots (only applicable if the "--skipQAPlots" 
    option was not used in Step 7 above).  
