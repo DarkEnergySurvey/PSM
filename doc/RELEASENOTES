@@ -1,3 +1,20 @@
+PSM v_Year1 (4 Dec 2012)
+------------------------
+
+1.  Updated for fPhotoStdsMatch2.
+    a. Added standard_set_in as a global variable.
+    b. Added standard_set_in as a comand-line option.
+
+2.  Added u-band support.
+
+3.  Added standard star color range command-line options, stdColorLo and 
+    stdColorHi.
+
+4.  Changed name of PSM results file from psmfitInput.fits to 
+    psmfitInput_$nite$filter.fits.
+
+5.  Changed object_id, image_id, and exposure_id from int's to long's.
+
 
 
 PSM v_DC6 (23 Aug 2009)
