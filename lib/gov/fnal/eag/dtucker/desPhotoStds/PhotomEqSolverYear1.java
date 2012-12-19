@@ -1178,7 +1178,7 @@ public class PhotomEqSolverYear1 {
 			String resTableFileName = "PSM_QA_res_" + nite + filter + ".txt";
 			File resTableFile = new File(resTableFileName);
 			FileWriter writer = new FileWriter(resTableFile);
-			writer.write("# res \t airmass \t mag \t stdColor \t ccdid \t mjd \t imageid \t exposureid \t X \t Y \n");
+			writer.write("# res \t airmass \t mag \t stdColor \t ccdid \t mjd \t imageid \t exposureid \t X_fp \t Y_fp \t x_ccd \t y_ccd \n");
 			
 			//Instantiate xy data series for plots...
 			XYSeries series1 = new XYSeries("");
@@ -1266,7 +1266,8 @@ public class PhotomEqSolverYear1 {
 						}
 						
 						//Write entry to residual table file...
-						String outputLine = res + "\t" + airmass + "\t" + mag + "\t" + stdColor + "\t" + ccd_number + "\t" + mjd + "\t" + image_id + "\t" + exposure_id + "\t" + x + "\t" + y + "\n";
+						String outputLine = res + "\t" + airmass + "\t" + mag + "\t" + stdColor + "\t" + ccd_number + "\t" + mjd + 
+							"\t" + image_id + "\t" + exposure_id + "\t" + x + "\t" + y + "\t" + mStdStar.getX_image() + "\t" + mStdStar.getY_image() + "\n";
 						writer.write(outputLine);
 
 					}
