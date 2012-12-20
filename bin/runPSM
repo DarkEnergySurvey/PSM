@@ -19,7 +19,6 @@
 #
 #      Currently only works for DECam data:
 #      - uses des param files regardless of project
-#      - assumes 62 CCDs
 #
 #      Any command-line arguments not used by this wrapper are passed
 #      directly to PSM
@@ -48,6 +47,8 @@ $|=1;
 
 my ($project, $nite, $run, $photflag, $qadir, $help);
 my $verbose = 1;
+my $prog = "PhotomEqSolverRunDC6";
+my $numCCDs = 62;
 my $maxrms = 0.01;
 my @bands=();
 my $updatedb = undef;
@@ -57,6 +58,8 @@ Getopt::Long::GetOptions(
     'bands=s'  => \@bands,
     'help' => \$help,
     'maxrms=s'  => \$maxrms,
+    'numccds=s'  => \$numCCDs,
+    'prog=s' => \$prog,
     'nite=s'  => \$nite,
     'photflag=i'  => \$photflag,
     'project=s'  => \$project,
@@ -86,6 +89,8 @@ if (defined($help)) {
     print "\t-bands b1,b2,b3\tPSM is run on each band in list (default g,r,i,z,Y)\n"; 
     print "\t-help\t\tprint usage for wrapper and PSM\n";
     print "\t-maxrms val\t\tIf rms calculated by PSM is greater than val for any band, then PSM is not run with -updateDB option (default 0.01)\n";
+    print "\t-numccds val\t\tThe minumum number of 'for CCD' lines in PSM output for 'good' run (Defaults to 62)\n";
+    print "\t-prog <solver name> (defaults to PhotomEqSolverRunDC6)\n";
     print "\t-nite n\t\t\n";
     print "\t-photflag f\tIf photflag is 0, then runPSM just exits without running PSM\n";
     print "\t-project\t\t\n";
@@ -94,7 +99,7 @@ if (defined($help)) {
     print "\t-updatedb\t\tIf on command line, after checks, PSM is rerun with --updateDB option\n";
     print "\t-verbose v\t\t\n";
     print "\n\n";
-    my $out = `java gov.fnal.eag.dtucker.desPhotoStds.PhotomEqSolverRunDC6 --help`;
+    my $out = `java gov.fnal.eag.dtucker.desPhotoStds.$prog --help`;
     print "$out\n";
     exit 0; 
 }
@@ -143,7 +148,7 @@ print "Running PSM for bands: ", join(',',@bands), "\n";
 
 
 #my $cmd = "java gov.fnal.eag.dtucker.desPhotoStds.PhotomEqSolverRunDC5 -P $project -n $nite --run $run --ccdid 0 --niter 3 --imageType red --bsolve --ksolve --magType mag_psf -v 2 --useOnlyCurrentObjects";
-my $basecmd = "java -Djava.awt.headless=true gov.fnal.eag.dtucker.desPhotoStds.PhotomEqSolverRunDC6 -P $project -n $nite --run $run "; 
+my $basecmd = "java -Djava.awt.headless=true gov.fnal.eag.dtucker.desPhotoStds.$prog -P $project -n $nite --run $run "; 
 
 my $otherargs = "";
 if (scalar(@ARGV) > 0) {
@@ -196,10 +201,15 @@ foreach my $b (@bands) {
         reportEvent($verbose, "STATUS", 5, "rms too large for band $b (rms=$rms, maxrms=$maxrms)");
         $failedQA = 1;
     }
-    if ($cntCCD < 62) {
-        reportEvent($verbose,"STATUS",5,"not enough CCDs for band $b ($cntCCD)");
+    if ($cntCCD < $numCCDs) {
+        reportEvent($verbose,"STATUS",5,"not enough CCDs for band $b (found $cntCCD, needed $numCCDs)");
         $failedQA = 1;
     }
+}
+
+if (!$failedQA && !$updatedb) {
+    print "Successful first pass of PSM\n"; 
+    print "Skipping updating database\n";
 }
 
 if (!$failedQA && $updatedb) {
