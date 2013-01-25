@@ -275,12 +275,14 @@ public class PhotomEqSolverYear1 {
 		int nTokens = st.countTokens();
 		System.out.println("nTokens=" + nTokens);
 		for (int i=0; i<nTokens; i++) {
-			int imageid2Exclude = Integer.parseInt((st.nextToken()).trim());
+			//int imageid2Exclude = Integer.parseInt((st.nextToken()).trim());
+			long imageid2Exclude = Long.parseLong((st.nextToken()).trim());
 			if (verbose > 1) {	
 				System.out.println(i + "\t" + imageid2Exclude + " added to imageid exclude list");
 			}
 			if (imageidExcludeArrayList.contains(imageid2Exclude) == false) {
-				imageidExcludeArrayList.add(new Integer(imageid2Exclude));
+				//imageidExcludeArrayList.add(new Integer(imageid2Exclude));
+				imageidExcludeArrayList.add(new Long(imageid2Exclude));
 			}
 		}		
 		
@@ -385,6 +387,11 @@ public class PhotomEqSolverYear1 {
 			double x_image = (double) rs2.getDouble(6);
 			double y_image = (double) rs2.getDouble(7);
 			rs2.close();
+			
+			//if (ccd_number == 60) {
+			//	continue;
+			//}
+			
 			
 			// If this star's instrumental mag is too small or too large, skip it
 			if (instmag <= 0.0 || instmag >= 99.) {
