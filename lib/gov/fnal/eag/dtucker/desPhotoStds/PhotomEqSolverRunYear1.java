@@ -51,6 +51,9 @@ public class PhotomEqSolverRunYear1 {
         String imageTypeDefault       = ph.getImageType();
         String imageNameFilterDefault = ph.getImageNameFilter();
         String imageidExcludeListDefault = ph.getImageidExcludeList();
+        String exposureidExcludeListDefault = ph.getExposureidExcludeList();
+        double expTimeLoDefault       = ph.getExpTimeLo();
+        double expTimeHiDefault       = ph.getExpTimeHi();
         String runDefault             = ph.getRun();
         String psmVersionDefault      = ph.getPsmVersion();
         boolean bsolveDefault         = ph.getBsolve();
@@ -93,6 +96,9 @@ public class PhotomEqSolverRunYear1 {
 				"   --imageType VALUE             image type for std star fields        [default: " + imageTypeDefault + "] \n" +
 				"   --imageNameFilter VALUE       image name filter for std star fields [default: " + imageNameFilterDefault + "] \n" +
 				"   --imageidExcludeList VALUE    list of image ids to exclude from fit [default: " + imageidExcludeListDefault + "] \n" +
+				"   --exposureidExcludeList VALUE list of image ids to exclude from fit [default: " + exposureidExcludeListDefault + "] \n" +
+				"   --expTimeLo VALUE             exposure time limit (short)           [default: " + expTimeLoDefault + "] \n" +
+				"   --expTimeHi VALUE             exposure time limit (long)            [default: " + expTimeHiDefault + "] \n" +
 				"   --run VALUE                   run for std star fields               [default: " + runDefault + "] \n" + 
 				"   --psmVersion VALUE            version of PSM                        [default: " + psmVersionDefault + "] \n" + 	
 				"   --bsolve                      include this flag to solve for instrumental color (b) terms \n" +
@@ -229,6 +235,9 @@ public class PhotomEqSolverRunYear1 {
         String imageTypeDefault       = ph.getImageType();
         String imageNameFilterDefault = ph.getImageNameFilter();
         String imageidExcludeListDefault = ph.getImageidExcludeList();
+        String exposureidExcludeListDefault = ph.getExposureidExcludeList();
+        double expTimeLoDefault       = ph.getExpTimeLo();
+        double expTimeHiDefault       = ph.getExpTimeHi();
         String runDefault             = ph.getRun();
         String psmVersionDefault      = ph.getPsmVersion();
         boolean bsolveDefault         = ph.getBsolve();
@@ -289,6 +298,9 @@ public class PhotomEqSolverRunYear1 {
         CmdLineParser.Option imageTypeOption       = parser.addStringOption("imageType");
         CmdLineParser.Option imageNameFilterOption = parser.addStringOption("imageNameFilter");
         CmdLineParser.Option imageidExcludeListOption = parser.addStringOption("imageidExcludeList");
+        CmdLineParser.Option exposureidExcludeListOption = parser.addStringOption("exposureidExcludeList");
+        CmdLineParser.Option expTimeLoOption       = parser.addDoubleOption("expTimeLo");
+        CmdLineParser.Option expTimeHiOption       = parser.addDoubleOption("expTimeHi");
         CmdLineParser.Option runOption             = parser.addStringOption("run");
         CmdLineParser.Option psmVersionOption      = parser.addStringOption("psmVersion");
         CmdLineParser.Option bsolveOption          = parser.addBooleanOption("bsolve");
@@ -399,6 +411,12 @@ public class PhotomEqSolverRunYear1 {
      						imageNameFilterDefault = field2;
      					} else if (field1.equals("imageidExcludeList")) {
      						imageidExcludeListDefault = field2;
+     					} else if (field1.equals("exposureidExcludeList")) {
+     						exposureidExcludeListDefault = field2;
+     					} else if (field1.equals("expTimeLo")) {
+     						expTimeLoDefault = Double.parseDouble(field2);
+     					} else if (field1.equals("expTimeHi")) {
+     						expTimeHiDefault = Double.parseDouble(field2);
       					} else if (field1.equals("run")) {
      						runDefault = field2;
      					} else if (field1.equals("psmVersion")) {
@@ -543,6 +561,9 @@ public class PhotomEqSolverRunYear1 {
     	String imageType = (String)parser.getOptionValue(imageTypeOption, imageTypeDefault);
     	String imageNameFilter = (String)parser.getOptionValue(imageNameFilterOption, imageNameFilterDefault);
     	String imageidExcludeList = (String)parser.getOptionValue(imageidExcludeListOption, imageidExcludeListDefault);
+    	String exposureidExcludeList = (String)parser.getOptionValue(exposureidExcludeListOption, exposureidExcludeListDefault);
+    	double expTimeLo = ((Double)parser.getOptionValue(expTimeLoOption, new Double(expTimeLoDefault))).doubleValue();
+    	double expTimeHi = ((Double)parser.getOptionValue(expTimeHiOption, new Double(expTimeHiDefault))).doubleValue();
     	String run = (String)parser.getOptionValue(runOption, runDefault);
     	String psmVersion = (String)parser.getOptionValue(psmVersionOption, psmVersionDefault);
     	Boolean bsolve = (Boolean)parser.getOptionValue(bsolveOption, bsolveDefault);
@@ -646,6 +667,15 @@ public class PhotomEqSolverRunYear1 {
     	
     	ph.setImageidExcludeList(imageidExcludeList);   
     	if (localVerbose > 0) {System.out.println("imageidExcludeList="+ph.getImageidExcludeList());}
+    	
+    	ph.setExposureidExcludeList(exposureidExcludeList);   
+    	if (localVerbose > 0) {System.out.println("exposureidExcludeList="+ph.getExposureidExcludeList());}
+    	
+    	ph.setExpTimeLo(expTimeLo);
+    	if (localVerbose > 0) {System.out.println("expTimeLo="+ph.getExpTimeLo());}
+    	
+    	ph.setExpTimeHi(expTimeHi);
+    	if (localVerbose > 0) {System.out.println("expTimeHi="+ph.getExpTimeHi());}
     	
     	ph.setRun(run);   
     	if (localVerbose > 0) {System.out.println("run="+ph.getRun());}
