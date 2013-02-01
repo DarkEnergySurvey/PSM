@@ -20,10 +20,11 @@ run             20081030000000_20081013  # the run parameter has replaced the ru
 #dbName          des                #can be done here, better obtained via .desdm file
 debug           false               #if debug=true, the psmfit table is NOT updated
 stdTable        standard_stars_all  #name of standard stars table to be used
-standard_set_in    3                #which set of standards from stdTable to use: 
+standard_set_in    4                #which set of standards from stdTable to use: 
                                     #    1=standard_stars (original)
                                     #    2=standard_stars_dc5
                                     #    3=standard_stars_sdss_sv_v1 (currently preferred)
+                                    #    4=hybrid (1 matched with UKIDSS DR8 Yab)
 
 #Parameters that deal with the fit
 stdColor0       0.53         #zeropoint color in m_inst-m_std = a + b*(stdColor-stdColor0) + kX
@@ -31,6 +32,9 @@ stdColor0       0.53         #zeropoint color in m_inst-m_std = a + b*(stdColor-
 
 magLo           15.0         #use only those standard stars with mags between magLo & magHi
 magHi           18.0
+
+expTimeLo        2.0         #use only objects with exposure times (in seconds) between expTimeLo and expTimeHi 
+expTimeHi      100.0
 
 stdColorLo      0.20         #use only those standard stars with g-r colors between stdColorLo & stdColorHi
 stdColorHi      1.00
