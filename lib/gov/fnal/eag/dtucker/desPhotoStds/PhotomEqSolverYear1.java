@@ -1100,65 +1100,8 @@ public class PhotomEqSolverYear1 {
 			//  on this CCD...
 			if (skipQAPlots == false) {
 				
-				String qaPlotFile = "PSM_QA_" + nite + filter
-				+ ccdIdArray[iccd] + "_" + fitTable + psmfit_id + ".jpg";
-
-				if (verbose > 1) {
-					System.out.println("Creating plot " + qaPlotFile + " for CCD "
-							+ ccdIdArray[iccd] + "...");
-					System.out.println("");
-				}
-
-				XYSeries series = new XYSeries("First");
-
-				int size = mStdStarList[iccd].size();
-				if (size > 0) {
-					for (int j = 0; j < size; j++) {
-						MatchedStdStarYear1 mStdStar = (MatchedStdStarYear1) mStdStarList[iccd].get(j);
-						double airmass = mStdStar.getAirmass();
-						double deltamag = mStdStar.getDeltamag();
-						series.add(airmass,deltamag);
-					}
-				}
-				//         Add the series to your data set
-				XYSeriesCollection dataset = new XYSeriesCollection();
-				dataset.addSeries(series);
-				//         Generate the graph
-				String title = "Night: " + nite + " Filter: " + filter + " CCD: " + ccdIdArray[iccd];
-				JFreeChart chart = ChartFactory.createScatterPlot(
-						title, // Title
-						"airmass", // x-axis Label
-						"instr mag - std mag", // y-axis Label
-						dataset, // Dataset
-						PlotOrientation.VERTICAL, // Plot Orientation
-						false, // Show Legend
-						false, // Use tooltips
-						false // Configure chart to generate URLs?
-				);
-
-				XYPlot plot = (XYPlot) chart.getPlot();
-				XYDotRenderer renderer = new XYDotRenderer();
-				renderer.setDotHeight(2);
-				renderer.setDotWidth(2);
-				renderer.setSeriesPaint(0, Color.blue);
-				//renderer.setSeriesShape(0, Shape);
-				plot.setRenderer(renderer);
-
-				// increase the margins to account for the fact that the auto-range 
-				// doesn't take into account the bubble size...
-				NumberAxis domainAxis = (NumberAxis) plot.getDomainAxis();
-				domainAxis.setLowerMargin(0.15);
-				domainAxis.setUpperMargin(0.15);
-				NumberAxis rangeAxis = (NumberAxis) plot.getRangeAxis();
-				rangeAxis.setLowerMargin(0.15);
-				rangeAxis.setUpperMargin(0.15);
-
-				try {
-					ChartUtilities.saveChartAsJPEG(new File(qaPlotFile), chart, 500, 300);
-				} catch (IOException e) {
-					System.err.println("Problem occurred creating chart.");
-				}
-
+				this.createQADeltaMagVsAirmassPlot(iccd, ccdIdArray, psmfit_id, mStdStarList);
+				
 			}
 	        
 		}
@@ -1230,544 +1173,9 @@ public class PhotomEqSolverYear1 {
 					nAxis1, nAxis2, a, k, b, ccdIdArray, stdColorName, 
 					xAxisMin, xAxisMax, yAxisMin, yAxisMax);
 			
-			if (false) {
-			
-			//Open up the residual table file...
-			String resTableFileName = "PSM_QA_res_" + nite + filter + ".txt";
-			File resTableFile = new File(resTableFileName);
-			FileWriter writer = new FileWriter(resTableFile);
-			writer.write("# res \t airmass \t mag \t stdColor \t ccdid \t mjd \t imageid \t exposureid \t X_fp \t Y_fp \t x_ccd \t y_ccd \t object_id \t stdRADeg \t stdDecDeg \t stdName \t stdFieldName \n");
-			
-			//Instantiate xy data series for plots...
-			XYSeries series1 = new XYSeries("");
-			XYSeries series2 = new XYSeries("");
-			XYSeries series3 = new XYSeries("");
-			XYSeries series4 = new XYSeries("");
-			XYSeries series5 = new XYSeries("");
-			XYSeries series6 = new XYSeries("");
-			//XYSeries series7 = new XYSeries("");
-			//XYSeries series8 = new XYSeries("");
-
-			double[] negStarX  = new double[100000];
-			double[] negStarY = new double[100000];
-			double[] negBubbleSize = new double[100000];
-			double[] posStarX  = new double[100000];
-			double[] posStarY = new double[100000];
-			double[] posBubbleSize = new double[100000];
-			int iNegStar = 0;
-			int iPosStar = 0;
-
-			for (iccd = 0; iccd < nccd; iccd++) {
-
-				int size = mStdStarList[iccd].size();
-
-				if (size > 0) {
-
-					//series7.add(xCenter[iccd], yCenter[iccd]);
-
-					for (int j = 0; j < size; j++) {
-
-						MatchedStdStarYear1 mStdStar = (MatchedStdStarYear1) mStdStarList[iccd].get(j);
-
-						String stdStarName = mStdStar.getStdStarName();
-						String fieldName = mStdStar.getFieldName();
-						double stdStarRA  = mStdStar.getStdRA();
-						double stdStarDec = mStdStar.getStdDec();
-						double airmass = mStdStar.getAirmass();
-						double mag = mStdStar.getStdmag();
-						int ccd_number = mStdStar.getCcd_number();
-						double deltamag = mStdStar.getDeltamag();
-						double mjd = mStdStar.getMjd();
-						long image_id = mStdStar.getImage_id();
-						long exposure_id = mStdStar.getExposure_id();
-						long object_id = mStdStar.getObject_id();
-
-						double x = mStdStar.getX_image() + (xCenter[iccd]-0.5*nAxis1[iccd]);
-						double y = mStdStar.getY_image() + (yCenter[iccd]-0.5*nAxis2[iccd]);
-
-						double stdColor = stdColor0;
-						if (filter.equals("u")) {
-							stdColor = mStdStar.getStdug();
-						} else if (filter.equals("g") || filter.equals("r")) {
-							stdColor = mStdStar.getStdgr();
-						} else if (filter.equals("i") || filter.equals("z")) {
-							stdColor = mStdStar.getStdiz();
-						} else if (filter.equals("Y")) {
-							stdColor = mStdStar.getStdzY();
-						}
-						double deltaStdColor = stdColor-stdColor0;
-						double res = deltamag - (a[iccd] + k * airmass + b[iccd] * deltaStdColor);
-
-						series1.add(airmass,res);
-						series2.add(mag,res);
-						series3.add(stdColor,res);
-						series4.add(ccd_number,res);
-						series5.add(mjd,res);
-						series6.add(image_id,res);
-						if (ccdIdArray[iccd] > -1) {
-							//series8.add(x,y);
-							// the area of the bubble is proportional to 
-							//  the magnitude of the residual...
-							double bubbleSize = 0.00;
-							if (res != 0.) {
-								bubbleSize = 2000.*Math.sqrt(Math.abs(res));
-							}
-							if (res < 0.) {
-								negStarX[iNegStar] = x;
-								negStarY[iNegStar] = y;
-								negBubbleSize[iNegStar] = bubbleSize;
-								iNegStar++;
-							} else {
-								posStarX[iPosStar] = x;
-								posStarY[iPosStar] = y;
-								posBubbleSize[iPosStar] = bubbleSize;
-								iPosStar++;
-							}
-
-						}
-						
-						//Write entry to residual table file...
-						String outputLine = res + "\t" + airmass + "\t" + mag + "\t" + stdColor + "\t" + ccd_number + "\t" + mjd + 
-							"\t" + image_id + "\t" + exposure_id + "\t" + x + "\t" + y + "\t" + mStdStar.getX_image() + "\t" + mStdStar.getY_image() + 
-							"\t" + object_id + "\t" + stdStarRA + "\t" + stdStarDec + "\t" + stdStarName + "\t" + fieldName + "\t" + "\n";
-						writer.write(outputLine);
-
-					}
-
-				}
-
-			}
-
-			writer.close();
-
-			String qaPlotFile;
-
-			qaPlotFile = "PSM_QA_res_vs_airmass_" + nite + filter + ".jpg";
-
-			if (verbose > 1) {
-				System.out.println("Creating plot " + qaPlotFile + "...");
-				System.out.println("");
-			}
-
-			XYSeriesCollection dataset = new XYSeriesCollection();
-			dataset.addSeries(series1);
-
-			String title = "Night: " + nite + " Filter: " + filter;
-			JFreeChart chart = ChartFactory.createScatterPlot(
-					title, // Title
-					"airmass", // x-axis Label
-					"mag residual", // y-axis Label
-					dataset, // Dataset
-					PlotOrientation.VERTICAL, // Plot Orientation
-					false, // Show Legend
-					false, // Use tooltips
-					false // Configure chart to generate URLs?
-			);
-
-			XYPlot plot = (XYPlot) chart.getPlot();
-			XYDotRenderer renderer = new XYDotRenderer();
-			renderer.setDotHeight(2);
-			renderer.setDotWidth(2);
-			renderer.setSeriesPaint(0, Color.blue);
-			//renderer.setSeriesShape(0, Shape);
-			plot.setRenderer(renderer);
-
-			// increase the margins to account for the fact that the auto-range 
-			// doesn't take into account the bubble size...
-			NumberAxis domainAxis = (NumberAxis) plot.getDomainAxis();
-			domainAxis.setLowerMargin(0.15);
-			domainAxis.setUpperMargin(0.15);
-			NumberAxis rangeAxis = (NumberAxis) plot.getRangeAxis();
-			rangeAxis.setLowerMargin(0.15);
-			rangeAxis.setUpperMargin(0.15);
-
-			try {
-				ChartUtilities.saveChartAsJPEG(new File(qaPlotFile), chart, 500, 300);
-			} catch (IOException e) {
-				System.err.println("Problem occurred creating chart.");
-			}
-
-
-			qaPlotFile = "PSM_QA_res_vs_mag_" + nite + filter + ".jpg";
-
-			if (verbose > 1) {
-				System.out.println("Creating plot " + qaPlotFile + "...");
-				System.out.println("");
-			}
-
-			dataset = new XYSeriesCollection();
-			dataset.addSeries(series2);
-
-			title = "Night: " + nite + " Filter: " + filter;
-			chart = ChartFactory.createScatterPlot(
-					title, // Title
-					"mag", // x-axis Label
-					"mag residual", // y-axis Label
-					dataset, // Dataset
-					PlotOrientation.VERTICAL, // Plot Orientation
-					false, // Show Legend
-					false, // Use tooltips
-					false // Configure chart to generate URLs?
-			);
-
-			plot = (XYPlot) chart.getPlot();
-			renderer = new XYDotRenderer();
-			renderer.setDotHeight(2);
-			renderer.setDotWidth(2);
-			renderer.setSeriesPaint(0, Color.blue);
-			//renderer.setSeriesShape(0, Shape);
-			plot.setRenderer(renderer);
-
-			// increase the margins to account for the fact that the auto-range 
-			// doesn't take into account the bubble size...
-			domainAxis = (NumberAxis) plot.getDomainAxis();
-			domainAxis.setLowerMargin(0.15);
-			domainAxis.setUpperMargin(0.15);
-			rangeAxis = (NumberAxis) plot.getRangeAxis();
-			rangeAxis.setLowerMargin(0.15);
-			rangeAxis.setUpperMargin(0.15);
-
-			try {
-				ChartUtilities.saveChartAsJPEG(new File(qaPlotFile), chart, 500, 300);
-			} catch (IOException e) {
-				System.err.println("Problem occurred creating chart.");
-			}
-
-
-			qaPlotFile = "PSM_QA_res_vs_color_" + nite + filter + ".jpg";
-
-			if (verbose > 1) {
-				System.out.println("Creating plot " + qaPlotFile + "...");
-				System.out.println("");
-			}
-
-			dataset = new XYSeriesCollection();
-			dataset.addSeries(series3);
-
-			title = "Night: " + nite + " Filter: " + filter;
-			chart = ChartFactory.createScatterPlot(
-					title, // Title
-					stdColorName, // x-axis Label
-					"mag residual", // y-axis Label
-					dataset, // Dataset
-					PlotOrientation.VERTICAL, // Plot Orientation
-					false, // Show Legend
-					false, // Use tooltips
-					false // Configure chart to generate URLs?
-			);
-
-			plot = (XYPlot) chart.getPlot();
-			renderer = new XYDotRenderer();
-			renderer.setDotHeight(2);
-			renderer.setDotWidth(2);
-			renderer.setSeriesPaint(0, Color.blue);
-			//renderer.setSeriesShape(0, Shape);
-			plot.setRenderer(renderer);
-
-			// increase the margins to account for the fact that the auto-range 
-			// doesn't take into account the bubble size...
-			domainAxis = (NumberAxis) plot.getDomainAxis();
-			domainAxis.setLowerMargin(0.15);
-			domainAxis.setUpperMargin(0.15);
-			rangeAxis = (NumberAxis) plot.getRangeAxis();
-			rangeAxis.setLowerMargin(0.15);
-			rangeAxis.setUpperMargin(0.15);
-
-			try {
-				ChartUtilities.saveChartAsJPEG(new File(qaPlotFile), chart, 500, 300);
-			} catch (IOException e) {
-				System.err.println("Problem occurred creating chart.");
-			}
-
-
-			qaPlotFile = "PSM_QA_res_vs_ccd_" + nite + filter + ".jpg";
-
-			if (verbose > 1) {
-				System.out.println("Creating plot " + qaPlotFile + "...");
-				System.out.println("");
-			}
-
-			dataset = new XYSeriesCollection();
-			dataset.addSeries(series4);
-
-			title = "Night: " + nite + " Filter: " + filter;
-			chart = ChartFactory.createScatterPlot(
-					title, // Title
-					"CCD number", // x-axis Label
-					"mag residual", // y-axis Label
-					dataset, // Dataset
-					PlotOrientation.VERTICAL, // Plot Orientation
-					false, // Show Legend
-					false, // Use tooltips
-					false // Configure chart to generate URLs?
-			);
-
-			plot = (XYPlot) chart.getPlot();
-			renderer = new XYDotRenderer();
-			renderer.setDotHeight(2);
-			renderer.setDotWidth(2);
-			renderer.setSeriesPaint(0, Color.blue);
-			//renderer.setSeriesShape(0, Shape);
-			plot.setRenderer(renderer);
-
-			// increase the margins to account for the fact that the auto-range 
-			// doesn't take into account the bubble size...
-			domainAxis = (NumberAxis) plot.getDomainAxis();
-			domainAxis.setLowerMargin(0.15);
-			domainAxis.setUpperMargin(0.15);
-			rangeAxis = (NumberAxis) plot.getRangeAxis();
-			rangeAxis.setLowerMargin(0.15);
-			rangeAxis.setUpperMargin(0.15);
-
-			try {
-				ChartUtilities.saveChartAsJPEG(new File(qaPlotFile), chart, 500, 300);
-			} catch (IOException e) {
-				System.err.println("Problem occurred creating chart.");
-			}
-
-
-			qaPlotFile = "PSM_QA_res_vs_mjd_" + nite + filter + ".jpg";
-
-			if (verbose > 1) {
-				System.out.println("Creating plot " + qaPlotFile + "...");
-				System.out.println("");
-			}
-
-			dataset = new XYSeriesCollection();
-			dataset.addSeries(series5);
-
-			title = "Night: " + nite + " Filter: " + filter;
-			chart = ChartFactory.createScatterPlot(
-					title, // Title
-					"mjd_obs", // x-axis Label
-					"mag residual", // y-axis Label
-					dataset, // Dataset
-					PlotOrientation.VERTICAL, // Plot Orientation
-					false, // Show Legend
-					false, // Use tooltips
-					false // Configure chart to generate URLs?
-			);
-
-			plot = (XYPlot) chart.getPlot();
-			renderer = new XYDotRenderer();
-			renderer.setDotHeight(2);
-			renderer.setDotWidth(2);
-			renderer.setSeriesPaint(0, Color.blue);
-			//renderer.setSeriesShape(0, Shape);
-			plot.setRenderer(renderer);
-
-			// increase the margins to account for the fact that the auto-range 
-			// doesn't take into account the bubble size...
-			domainAxis = (NumberAxis) plot.getDomainAxis();
-			domainAxis.setLowerMargin(0.15);
-			domainAxis.setUpperMargin(0.15);
-			rangeAxis = (NumberAxis) plot.getRangeAxis();
-			rangeAxis.setLowerMargin(0.15);
-			rangeAxis.setUpperMargin(0.15);
-
-			try {
-				ChartUtilities.saveChartAsJPEG(new File(qaPlotFile), chart, 500, 300);
-			} catch (IOException e) {
-				System.err.println("Problem occurred creating chart.");
-			}
-
-			qaPlotFile = "PSM_QA_res_vs_imageid_" + nite + filter + ".jpg";
-
-			if (verbose > 1) {
-				System.out.println("Creating plot " + qaPlotFile + "...");
-				System.out.println("");
-			}
-
-			dataset = new XYSeriesCollection();
-			dataset.addSeries(series6);
-
-			title = "Night: " + nite + " Filter: " + filter;
-			chart = ChartFactory.createScatterPlot(
-					title, // Title
-					"image_id", // x-axis Label
-					"mag residual", // y-axis Label
-					dataset, // Dataset
-					PlotOrientation.VERTICAL, // Plot Orientation
-					false, // Show Legend
-					false, // Use tooltips
-					false // Configure chart to generate URLs?
-			);
-
-			plot = (XYPlot) chart.getPlot();
-			renderer = new XYDotRenderer();
-			renderer.setDotHeight(2);
-			renderer.setDotWidth(2);
-			renderer.setSeriesPaint(0, Color.blue);
-			//renderer.setSeriesShape(0, Shape);
-			plot.setRenderer(renderer);
-
-			// increase the margins to account for the fact that the auto-range 
-			// doesn't take into account the bubble size...
-			domainAxis = (NumberAxis) plot.getDomainAxis();
-			domainAxis.setLowerMargin(0.15);
-			domainAxis.setUpperMargin(0.15);
-			rangeAxis = (NumberAxis) plot.getRangeAxis();
-			rangeAxis.setLowerMargin(0.15);
-			rangeAxis.setUpperMargin(0.15);
-
-			try {
-				ChartUtilities.saveChartAsJPEG(new File(qaPlotFile), chart, 500, 300);
-			} catch (IOException e) {
-				System.err.println("Problem occurred creating chart.");
-			}
-
-
-			qaPlotFile = "PSM_QA_res_vs_focalplaneXY_" + nite + filter + ".jpg";
-
-			if (verbose > 1) {
-				System.out.println("Creating plot " + qaPlotFile + "...");
-				System.out.println("");
-			}
-
-			// Define range of the plot
-			double axisMin = Math.min(xAxisMin, yAxisMin);
-			double axisMax = Math.max(xAxisMax, yAxisMax);
-			double extraSpace = 0.10*(axisMax-axisMin);
-			axisMin = axisMin - extraSpace;
-			axisMax = axisMax + extraSpace;
-
-			// Create dataset.
-			DefaultXYZDataset dataxyzset = new DefaultXYZDataset(); 
-			double[][] xyzseries0 = new double[][] { negStarX, negStarY, negBubbleSize };
-			double[][] xyzseries1 = new double[][] { posStarX, posStarY, posBubbleSize };
-
-			// Create legend to be plotted below the figure.
-			double[] xPosLegendList = new double[6]; 
-			double[] yPosLegendList = new double[6];
-			double[] zPosLegendList = new double[6];
-			double[] xNegLegendList = new double[5]; 
-			double[] yNegLegendList = new double[5];
-			double[] zNegLegendList = new double[5];
-
-			double spacing = (axisMax-axisMin)/12.;
-			for (int iii=0; iii<5; iii++) {
-				xNegLegendList[iii] = axisMin + (1+iii)*spacing;
-				yNegLegendList[iii] = axisMin + 0.5*spacing;
-				zNegLegendList[iii] = 2000.*Math.sqrt(Math.abs(2*0.01*(5-iii)));
-			}
-			for (int iii=0; iii<6; iii++) {
-				xPosLegendList[iii] = axisMin + (6+iii)*spacing;
-				yPosLegendList[iii] = axisMin + 0.5*spacing;
-				if (iii == 0) {
-					zPosLegendList[iii] = 0.00;
-				} else {
-					zPosLegendList[iii] = 2000.*Math.sqrt(Math.abs(2*0.01*(iii)));
-				}
-			}
-			double[][] xyzseries0leg = new double[][] { xNegLegendList, yNegLegendList, zNegLegendList };
-			double[][] xyzseries1leg = new double[][] { xPosLegendList, yPosLegendList, zPosLegendList };
-
-			dataxyzset.addSeries("Series 0", xyzseries0);
-			dataxyzset.addSeries("Series 1", xyzseries1);
-			dataxyzset.addSeries("Series 0 Legend", xyzseries0leg);
-			dataxyzset.addSeries("Series 1 Legend", xyzseries1leg);
-
-			//dataset = new XYSeriesCollection();
-			//dataset.addSeries(series7);
-			//dataset.addSeries(series8);
-
-			title = "Magnitude Residuals vs. Position on Focal Plane\n Night: " + nite + " Filter: " + filter;
-			chart = ChartFactory.createBubbleChart(
-					title, // Title
-					"x [pixels]",   // x-axis Label
-					"y [pixels]",  // y-axis Label
-					dataxyzset,   // Dataset
-					PlotOrientation.VERTICAL, // Plot Orientation
-					false,     // Show Legend
-					true,      // Use tooltips
-					false      // Configure chart to generate URLs?
-			);
-
-			plot = (XYPlot) chart.getPlot();
-
-			XYBubbleRenderer xybubblerenderer = new XYBubbleRenderer();
-
-			//modify color of plot symbols 
-			XYItemRenderer xyitemRenderer = plot.getRenderer();
-			xyitemRenderer.setSeriesPaint(0,Color.red);
-			xyitemRenderer.setSeriesPaint(2,Color.red);
-			xyitemRenderer.setSeriesPaint(1, Color.green);
-			xyitemRenderer.setSeriesPaint(3, Color.green);
-			//Paint paint = xyitemRenderer.getSeriesPaint(1);
-			//System.out.println("Transparency = " + paint.getTransparency());
-
-
-			// annotate the plot with the locations and the IDs of the CCDs
-			for (iccd=0; iccd<nccd; iccd++) {
-
-				XYBoxAnnotation a1 = new XYBoxAnnotation(
-						xCenter[iccd]-0.5*nAxis1[iccd], yCenter[iccd]-0.5*nAxis2[iccd], 
-						xCenter[iccd]+0.5*nAxis1[iccd], yCenter[iccd]+0.5*nAxis2[iccd], 
-						new BasicStroke(1.5f), Color.black);
-				plot.addAnnotation(a1);
-
-				XYTextAnnotation a2 = null;
-				//Font font = new Font("SansSerif", Font.PLAIN, 9);
-				Font font = new Font("SansSerif", Font.BOLD, 15);
-				a2 = new XYTextAnnotation(Integer.toString(ccdIdArray[iccd]), xCenter[iccd], yCenter[iccd]);
-				a2.setFont(font);
-				a2.setTextAnchor(TextAnchor.CENTER);
-				//a2.setTextAnchor(TextAnchor.HALF_ASCENT_LEFT);
-				plot.addAnnotation(a2);
-
-			}
-
-			// add annotations for the plot legend
-			XYTextAnnotation a3 = null;
-			Font font = new Font("SansSerif", Font.PLAIN, 9);
-
-			for (int iii = 0; iii<11; iii++) {
-				double resValue = 0.02*(iii-5);
-				String resLabel = Double.toString(0.02*(iii-5));
-				if (resValue > 0.00) {
-					resLabel = "+"+resLabel;
-				} 
-				//System.out.println(resLabel);
-				double xLabel = axisMin + (iii+1)*spacing;
-				double yLabel = axisMin + 0.25*spacing;
-				a3 = new XYTextAnnotation(resLabel, xLabel, yLabel);
-				a3.setFont(font);
-				a3.setTextAnchor(TextAnchor.CENTER);
-				plot.addAnnotation(a3);
-
-			}
-
-			// increase the margins to account for the fact that the auto-range 
-			// doesn't take into account the ccd size...
-			domainAxis = (NumberAxis) plot.getDomainAxis();
-			domainAxis.setRange(axisMin,axisMax);
-			rangeAxis = (NumberAxis) plot.getRangeAxis();
-			rangeAxis.setRange(axisMin,axisMax);
-
-			// create and display a frame on screen...
-			if (false) {
-				ChartFrame frame = new ChartFrame("Focal Plane Plot", chart);
-				ChartPanel panel = frame.getChartPanel();
-				panel.setFocusable(true);
-				panel.setDisplayToolTips(true);
-				panel.setPreferredSize(new java.awt.Dimension(680, 680));
-				frame.pack();
-				frame.setVisible(true);  
-				//System.out.println(frame.getChartPanel().getHeight() + " x " + frame.getChartPanel().getWidth());
-			}
-
-			//Output plot to JPEG image file...
-			try {
-				ChartUtilities.saveChartAsJPEG(new File(qaPlotFile), chart, 1200, 1200);
-				//ChartUtilities.saveChartAsJPEG(new File(qaPlotFile), chart, 680, 680);
-			} catch (IOException e) {
-				System.err.println("Problem occurred creating chart.");
-			}
-
-		}		
-		
 		}	
 			
+		
 		// Finis.
 		if (verbose > 0) {
 			System.out.println("A binary FITS table containing the results formatted for the " + fitTable + " table can be found in " + psmfitInputFileName);
@@ -1778,6 +1186,70 @@ public class PhotomEqSolverYear1 {
 
 	}
 
+	public void createQADeltaMagVsAirmassPlot(int iccd, int[] ccdIdArray, int psmfit_id, ArrayList[] mStdStarList) throws Exception {
+		
+		String qaPlotFile = "PSM_QA_" + nite + filter
+		+ ccdIdArray[iccd] + "_" + fitTable + psmfit_id + ".jpg";
+
+		if (verbose > 1) {
+			System.out.println("Creating plot " + qaPlotFile + " for CCD "
+					+ ccdIdArray[iccd] + "...");
+			System.out.println("");
+		}
+
+		XYSeries series = new XYSeries("First");
+
+		int size = mStdStarList[iccd].size();
+		if (size > 0) {
+			for (int j = 0; j < size; j++) {
+				MatchedStdStarYear1 mStdStar = (MatchedStdStarYear1) mStdStarList[iccd].get(j);
+				double airmass = mStdStar.getAirmass();
+				double deltamag = mStdStar.getDeltamag();
+				series.add(airmass,deltamag);
+			}
+		}
+		//         Add the series to your data set
+		XYSeriesCollection dataset = new XYSeriesCollection();
+		dataset.addSeries(series);
+		//         Generate the graph
+		String title = "Night: " + nite + " Filter: " + filter + " CCD: " + ccdIdArray[iccd];
+		JFreeChart chart = ChartFactory.createScatterPlot(
+				title, // Title
+				"airmass", // x-axis Label
+				"instr mag - std mag", // y-axis Label
+				dataset, // Dataset
+				PlotOrientation.VERTICAL, // Plot Orientation
+				false, // Show Legend
+				false, // Use tooltips
+				false // Configure chart to generate URLs?
+		);
+
+		XYPlot plot = (XYPlot) chart.getPlot();
+		XYDotRenderer renderer = new XYDotRenderer();
+		renderer.setDotHeight(2);
+		renderer.setDotWidth(2);
+		renderer.setSeriesPaint(0, Color.blue);
+		//renderer.setSeriesShape(0, Shape);
+		plot.setRenderer(renderer);
+
+		// increase the margins to account for the fact that the auto-range 
+		// doesn't take into account the bubble size...
+		NumberAxis domainAxis = (NumberAxis) plot.getDomainAxis();
+		domainAxis.setLowerMargin(0.15);
+		domainAxis.setUpperMargin(0.15);
+		NumberAxis rangeAxis = (NumberAxis) plot.getRangeAxis();
+		rangeAxis.setLowerMargin(0.15);
+		rangeAxis.setUpperMargin(0.15);
+
+		try {
+			ChartUtilities.saveChartAsJPEG(new File(qaPlotFile), chart, 500, 300);
+		} catch (IOException e) {
+			System.err.println("Problem occurred creating chart.");
+		}	
+		
+	}
+	
+	
 	public void createQAResPlots(int nccd, ArrayList[] mStdStarList, double[] xCenter, double[] yCenter, 
 			int[] nAxis1, int[] nAxis2, double[] a, double k, double[] b, int[] ccdIdArray, String stdColorName, 
 			double xAxisMin, double xAxisMax, double yAxisMin, double yAxisMax) throws Exception {
