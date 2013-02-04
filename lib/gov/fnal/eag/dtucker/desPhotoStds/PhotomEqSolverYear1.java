@@ -405,6 +405,13 @@ public class PhotomEqSolverYear1 {
 			double zeropoint = (double) rs0.getFloat("zeropoint");
 			double airmass = (double) rs0.getFloat("airmass");
 
+			if (exptime < expTimeLo || exptime > expTimeHi) {
+				if (verbose > 0) {
+					System.out.println("objectid " + object_id +  " lies within an exposure with exposure time " + exptime + 
+										", which outside the range of acceptable exposure times (" + expTimeLo + "-" + expTimeHi + " sec)  ...  skipping... ");
+				}
+				continue;
+			}
 
 			// Find on which CCD, image, and exposure this star lies, and find this star's 
 			//  instrumental mag, instrumental mag err, and (x,y)-position on the CCD...
