@@ -1,5 +1,11 @@
 #!/usr/bin/env python
 
+# Authors:   Brian Yanny and Douglas Tucker
+# Date:      17 May 2013
+# Updated:   18 May 2013
+
+# Description:
+#
 # This file defines methods for solving the photometric zeropoints 
 # (a_1, a_2, ..., a_N), the instrumental color term coefficients
 # (b_1, b_2, ..., b_N), and the first-order extinction (k) for a 
@@ -22,19 +28,36 @@
 # this single-CCD example looks like this:
 #   g_inst-g_std = a + b*( (g-r) - (g-r)_0 ) + kX
 
-# Authors:   Brian Yanny and Douglas Tucker
-# Date:      17 May 2013
-# Updated:   18 May 2013
-
 import numpy
 import sys
 import math
 import os
+import getopt
 
 #---------------------------------------------------------------------------
+# Client usage.
 
-def Usage():
-   sys.exit("psm <inmatches> <outak> <bandidugrizy012345> <niter> <thresholdit> <ksolve> <bsolve>")
+def usage():
+   clientName = os.path.basename(sys.argv[0])
+   print 
+   print 'Usage:'
+   print ' %s <inmatches> <outak> <bandid> <niter> <thresholdit> [--ksolve] [--bsolve] [--verbose=0 (default)] [-h,--help]' % clientName
+   print 'where:'
+   print '   inmatches    is the input match file                                (required)'
+   print '   outak        is the output file                                     (required)'
+   print '   bandid       is the band id number (u=0,g=1,r=2,i=3,z=4,Y=5)        (required)'
+   print '   niter        is the number of iterations for the outlier rejection  (required)'
+   print '   thresholdit  is the threshold (in mag) of for the outlier rejection (required)'
+   print '   --ksolve     is a toggle to solve for the k term coefficient        (optional)'
+   print '   --ksolve     is a toggle to solve for the b term coefficients       (optional)'
+   print '   --verbose    is the verbosity level (default=0)                     (optional)'
+   print '   -h,--help    is a toggle to print out this usage guide              (optional)'
+   print 
+   print 'Examples:'
+   print ' %s matchemup.csv psm_solve_Y.txt 5 4 0.1 --bsolve --ksolve --verbose=3' % clientName
+   print ' %s --help' % clientName
+   print
+
 
 #---------------------------------------------------------------------------
 
@@ -296,7 +319,7 @@ def psm(inmatches,outak,bandid,niter,thresholdit,ksolve,bsolve):
          mag=float(lsp[14])
          exptime=float(lsp[11])
          airmass=float(lsp[12])
-         # Note:  chnage befault to XX[nccd+ccd]
+         # Note:  change befault to XX[nccd+ccd]
          dm = (mag + 2.5*math.log(exptime,10) - XX[ccd] - XX[0]*airmass - bdefault*(colorstd-color0)) - magstd
          sum += dm
          sumsq += dm*dm
@@ -340,11 +363,54 @@ def psm(inmatches,outak,bandid,niter,thresholdit,ksolve,bsolve):
    sys.exit
  
 #---------------------------------------------------------------------------
+# Main method:
 
 if __name__ == "__main__":
-   if len(sys.argv[1:]) < 7 or (sys.argv[1] == '-h'):
-      Usage()
-   psm(sys.argv[1],sys.argv[2],sys.argv[3],sys.argv[4],sys.argv[5],sys.argv[6],sys.argv[7])
+
+   # If help requested, or if insufficient number of arguments, print out usage.
+   if (sys.argv[1] == '-h') or (sys.argv[1] == '--help'):
+      usage()
+      sys.exit(0)
+   elif len(sys.argv[1:]) < 5:
+      usage()
+      sys.exit(1)
+   #endif
+
+   # Parse required arguments (arguments 1-5)...
+   inmatches   = sys.argv[1]
+   outak       = sys.argv[2]
+   bandid      = sys.argv[3]
+   niter       = sys.argv[4]
+   thresholdit = sys.argv[5]
+
+   # Parse any optional arguments (any beyond argument 5)...
+   try:
+      opts,args = getopt.getopt(sys.argv[6:],'h',['bsolve', 'ksolve', 'help', 'verbose='])
+   except getopt.GetoptError:
+      usage()
+      sys.exit(1)
+   #end try
+
+   verbose = 0        # Default value for verbosity
+   bsolve  = 'False'  # Default value for bsolve
+   ksolve  = 'False'  # Default value for ksolve
+
+   for o, a in opts:
+      if o == '--bsolve':
+         bsolve = 'True'
+      elif o == '--ksolve':
+         ksolve = 'True'
+      elif o in ('-h', '--help'):
+         usage()
+         sys.exit(0)
+      elif o in ('--verbose'):
+         verbose = int(a)
+      #endif
+   #endfor
+
+   # Call psm method
+   psm(inmatches,outak,bandid,niter,thresholdit,ksolve,bsolve)
+
 
 #---------------------------------------------------------------------------
 
