@@ -1,5 +1,27 @@
 #!/usr/bin/env python
 
+# This file defines methods for solving the photometric zeropoints 
+# (a_1, a_2, ..., a_N), the instrumental color term coefficients
+# (b_1, b_2, ..., b_N), and the first-order extinction (k) for a 
+# given filter for a given night by fitting the following equation 
+# for standard star observations: 
+#    m_inst-m_std = a_1 + ... a_N + 
+#                   b_1*(stdColor-stdColor0) + ... + 
+#                   b_N*(stdColor-stdColor0) + kX,
+# where m_inst is the instrumental (observed) mag of a standard 
+# star, m_std is the known calibrated mag of the standard star, 
+# stdColor is the known calibrated color of the standard star
+# (e.g., its g-r color), stdColor0 is a zeropoint constant for  
+# the standard color and X is the airmass of the observation.
+# 
+# For a camera with a single CCD, the above equation reduces to 
+# the following, simpler form:
+#    m_inst-m_std = a + b*(stdColor-stdColor0) + kX
+#
+# For the explicit case of the g filter and a g-r color,
+# this single-CCD example looks like this:
+#   g_inst-g_std = a + b*( (g-r) - (g-r)_0 ) + kX
+
 # Authors:   Brian Yanny and Douglas Tucker
 # Date:      17 May 2013
 # Updated:   18 May 2013
@@ -140,7 +162,8 @@ def psm(inmatches,outak,bandid,niter,thresholdit,ksolve,bsolve):
          mag = float(lsp[14])
          magerr = float(lsp[15])
          #weight = 1.0/(magerr+0.00001)/(magerr+0.00001)
-         weight = 1.0
+         #weight = 1.0
+         weight = 1.0/(0.02*0.02)
          #print mag,magerr,weight
          exptime = float(lsp[11])
          airmass = float(lsp[12])
@@ -199,6 +222,27 @@ def psm(inmatches,outak,bandid,niter,thresholdit,ksolve,bsolve):
 
       #endfor
 
+      # Find any CCDs for which nstar==0
+      print
+      print nstar
+      badinds = numpy.hstack(numpy.nonzero(nstar==0))
+      print badinds, len(badinds)
+      print 
+      # Set the a's, b's of any CCDs for which nstar=0 to signal values
+      for iccd in range(0,len(badinds)):
+         ccd = badinds[iccd] + 1
+         iparam_a = ccd
+         iparam_b = nccd + ccd
+         print iccd, badinds[iccd], ccd, iparam_a, iparam_b
+         AA[iparam_a,:] = 0.0
+         AA[iparam_a][iparam_a] = 1.0
+         BB[iparam_a] = -9999.00+25.00
+
+         AA[iparam_b,:] = 0.0
+         AA[iparam_b][iparam_b] = 1.0
+         BB[iparam_b] = -9999.00         
+      #endfor
+
       if (ksolve=='False'):
          AA[0][0] = 1.0
          BB[0] = kdefault
@@ -212,11 +256,10 @@ def psm(inmatches,outak,bandid,niter,thresholdit,ksolve,bsolve):
       #endif
 
       # Solve for XX in AA.XX=BB matrix equation...
-      (XX,residue,rank,s) = numpy.linalg.lstsq(AA,BB)
-      print 'rank', rank
-
-      #AAinv = numpy.linalg.inv(AA)
-      #print AA, AAinv
+      #(XX,residue,rank,s) = numpy.linalg.lstsq(AA,BB)
+      #print 'rank', rank
+      AAinv = numpy.linalg.inv(AA)
+      XX=AAinv.dot(BB)
 
       # Output to matched catalog output file those stars that
       # survive this iteration's clipping...
@@ -270,7 +313,8 @@ def psm(inmatches,outak,bandid,niter,thresholdit,ksolve,bsolve):
       avg = float(sum/ninfit)
       sigma = math.sqrt(sumsq/ninfit-avg*avg)
       print "k:"+str(XX[0])+' rms:'+str(sigma)+' n:'+str(ninfit)
-   
+      print 'kerr:'+str(math.sqrt(AAinv[0][0]))
+
    #endfor (iiter)
 
    # Output the results of fit...
@@ -282,8 +326,12 @@ def psm(inmatches,outak,bandid,niter,thresholdit,ksolve,bsolve):
    ofd.write('rms_'+band+' '+str('%.4f'%float(sigma))+'\n')
    ofd.write('k_'+band+' '+str('%.3f'%float(XX[0]))+'\n')
    for i in range(1,63):
+      outputLine = 'a_%s %2d %.3f %.3f \n' % (band, i, XX[i]-25., math.sqrt(AAinv[i][i]))
+      print outputLine,
       ofd.write('a_'+band+' '+str(i)+' '+str('%.3f'%float(XX[i]-25.))+'\n')
    for i in range(1,63):
+      outputLine = 'a_%s %2d %.3f %.3f \n' % (band, i, XX[nccd+i], math.sqrt(AAinv[nccd+i][nccd+i]))
+      print outputLine,
       ofd.write('b_'+band+' '+str(i)+' '+str('%.3f'%float(XX[nccd+i]))+'\n')
    ofd.close()
 
