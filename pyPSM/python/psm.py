@@ -73,9 +73,7 @@ def psm(inmatches,outak,bandid,niter,thresholdit,ksolve,bsolve):
    bandlist = ['u','g','r','i','z','Y']
    print len(bandlist)
    if bandid < len(bandlist):
-      print bandid
       fitband = bandlist[bandid]
-      print bandid, fitband
    else:
       print 'Bandid %d has no corresponding filter...' % bandid
       sys.exit(1)
@@ -96,12 +94,17 @@ def psm(inmatches,outak,bandid,niter,thresholdit,ksolve,bsolve):
    #endif
 
    # The input matched file is inmatches; 
-   # the output matched file (used for iterative clipping) is inmatches.tmp
+   # the output matched file (used for iterative clipping) is inmatches.tmp; 
+   # the residuals file (used for QA plots) is inmatches.res.
    infile = inmatches
-   outfile = inmatches+'.tmp'
+   outfile = inmatches+'.'+fitband+'.tmp'
+   resfile = inmatches+'.'+fitband+'.res.csv'
 
    # The default zeropoint...
    defaultzp = 0.0
+
+   # The base magnitude error (for adding in quadrature with the Poisson error)
+   baseMagErr = 0.02
 
    # The number of parameters as a whole (nparam), and
    # the number of free parameters (nFreeParam), which
@@ -186,7 +189,7 @@ def psm(inmatches,outak,bandid,niter,thresholdit,ksolve,bsolve):
          magerr = float(lsp[15])
          #weight = 1.0/(magerr+0.00001)/(magerr+0.00001)
          #weight = 1.0
-         weight = 1.0/(0.02*0.02)
+         weight = 1.0/(baseMagErr*baseMagErr)
          #print mag,magerr,weight
          exptime = float(lsp[11])
          airmass = float(lsp[12])
@@ -246,21 +249,21 @@ def psm(inmatches,outak,bandid,niter,thresholdit,ksolve,bsolve):
       #endfor
 
       # Find any CCDs for which nstar==0
-      print
-      print nstar
       badinds = numpy.hstack(numpy.nonzero(nstar==0))
-      print badinds, len(badinds)
-      print 
+
       # Set the a's, b's of any CCDs for which nstar=0 to signal values
       for iccd in range(0,len(badinds)):
+
          ccd = badinds[iccd] + 1
          iparam_a = ccd
          iparam_b = nccd + ccd
-         print iccd, badinds[iccd], ccd, iparam_a, iparam_b
+
+         # Fix a's...
          AA[iparam_a,:] = 0.0
          AA[iparam_a][iparam_a] = 1.0
          BB[iparam_a] = -9999.00+25.00
 
+         # Fix b's...
          AA[iparam_b,:] = 0.0
          AA[iparam_b][iparam_b] = 1.0
          BB[iparam_b] = -9999.00         
@@ -286,6 +289,8 @@ def psm(inmatches,outak,bandid,niter,thresholdit,ksolve,bsolve):
 
       # Output to matched catalog output file those stars that
       # survive this iteration's clipping...
+      ofd3=open(resfile,'w')
+      ofd3.write('res,airmass,magstd,colorstd,ccd,expnum\n')
       ofd2=open(outfile,'w')
       fd=open(infile)
       for l in fd:
@@ -319,6 +324,7 @@ def psm(inmatches,outak,bandid,niter,thresholdit,ksolve,bsolve):
          mag=float(lsp[14])
          exptime=float(lsp[11])
          airmass=float(lsp[12])
+         expnum=int(lsp[9])
          # Note:  change befault to XX[nccd+ccd]
          dm = (mag + 2.5*math.log(exptime,10) - XX[ccd] - XX[0]*airmass - bdefault*(colorstd-color0)) - magstd
          sum += dm
@@ -326,10 +332,13 @@ def psm(inmatches,outak,bandid,niter,thresholdit,ksolve,bsolve):
          ninfit += 1
          if abs(dm) < thresholdit:
             ofd2.write(l)
+            resOutputLine = '%.4f,%.3f,%.4f,%.4f,%d,%d\n' % (dm,airmass,magstd,colorstd,ccd,expnum)
+            ofd3.write(resOutputLine)
          #endif
    
       #endfor (fd)
 
+      ofd3.close()
       ofd2.close()
       infile = outfile
       outfile = infile+'.tmp'
@@ -342,7 +351,7 @@ def psm(inmatches,outak,bandid,niter,thresholdit,ksolve,bsolve):
 
    # Output the results of fit...
 
-   os.system("/bin/rm -f "+inmatches+'.tmp*')
+   os.system("/bin/rm -f "+inmatches+'.'+fitband+'.tmp*')
    ofd=open(outak,'w')
    ofd.write('n_'+band+' '+str('%d'%int(ninfit))+'\n')
    ofd.write('niter_'+band+' '+str('%d'%int(niter))+'\n')
