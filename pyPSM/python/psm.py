@@ -33,6 +33,7 @@ import sys
 import math
 import os
 import getopt
+import pyfits
 
 #---------------------------------------------------------------------------
 # Client usage.
@@ -78,6 +79,45 @@ def psm(inmatches,outak,bandid,niter,thresholdit,ksolve,bsolve):
       print 'Bandid %d has no corresponding filter...' % bandid
       sys.exit(1)
    #endif
+   
+   # Set certain defaults for each filter...
+   if fitband == 'u':
+      cfitband = 'g'
+      stdColorName = 'u-g'
+      bdefault = 0.0
+      color0 = 1.39
+      kdefault = 0.489
+   elif fitband == 'g':
+      cfitband = 'r'
+      stdColorName = 'g-r'
+      bdefault = -0.1
+      color0 = 0.53
+      kdefault = 0.181
+   elif fitband == 'r':
+      cfitband = 'g'
+      stdColorName = 'g-r'
+      bdefault = -0.08
+      color0 = 0.53
+      kdefault = 0.095
+   elif fitband == 'i':
+      cfitband = 'z'
+      stdColorName = 'i-z'
+      bdefault = -0.3
+      color0 = 0.09
+      kdefault = 0.089
+   elif fitband == 'z':
+      cfitband = 'i'
+      stdColorName = 'i-z'
+      bdefault = -0.09
+      color0 = 0.053
+      kdefault = 0.089
+   elif fitband == 'Y':
+      cfitband = 'z'
+      stdColorName = 'z-Y'
+      bdefault = 0.26
+      color0 = 0.05
+      kdefault = 0.050
+   #endif
 
    # Solve for k coefficient?  Default is no.
    if ksolve in ['True', 'true', 'T', 't', '1', 'yes', 'y', '1']:
@@ -99,6 +139,7 @@ def psm(inmatches,outak,bandid,niter,thresholdit,ksolve,bsolve):
    infile = inmatches
    outfile = inmatches+'.'+fitband+'.tmp'
    resfile = inmatches+'.'+fitband+'.res.csv'
+   outfitsfile = inmatches+'.'+fitband+'.fit'
 
    # The default zeropoint...
    defaultzp = 0.0
@@ -153,34 +194,6 @@ def psm(inmatches,outak,bandid,niter,thresholdit,ksolve,bsolve):
          colorstd=float(lsp[4])
          if ((band == 'i' or band == 'z') and (colorstd < 0.0 or colorstd > 0.7)) or ((band == 'g' or band == 'r') and (colorstd < 0.2 or colorstd > 1.2)):
             continue
-         #endif
-         if band == 'u':
-            bdefault = 0.0
-            color0 = 1.39
-            kdefault = 0.489
-         elif band == 'g':
-            bdefault = -0.1
-            color0 = 0.53
-            kdefault = 0.181
-         elif band == 'r':
-            bdefault = -0.08
-            color0 = 0.53
-            kdefault = 0.095
-         elif band == 'i':
-            bdefault = -0.3
-            color0 = 0.09
-            kdefault = 0.089
-         elif band == 'z':
-            bdefault = -0.09
-            color0 = 0.053
-            kdefault = 0.089
-         elif band == 'y' or band == 'Y':
-            bdefault = 0.26
-            color0 = 0.05
-            kdefault = 0.050
-         else:
-            print 'Band %s is an unknown filter...' % band
-            sys.exit(1)
          #endif
 
          ccd = int(lsp[10])
@@ -298,27 +311,11 @@ def psm(inmatches,outak,bandid,niter,thresholdit,ksolve,bsolve):
          band=lsp[18]
          if band != fitband:
             continue
+
          colorstd=float(lsp[4])
          if ((band == 'i' or band == 'z') and (colorstd < 0.0 or colorstd > 0.7)) or ((band == 'g' or band == 'r') and (colorstd < 0.2 or colorstd > 1.2)):
             continue
-         if band == 'u':
-            bdefault = 0.0
-            color0 = 1.39
-         if band == 'g':
-            bdefault = -0.1
-            color0 = 0.53
-         if band == 'r':
-            bdefault = -0.08
-            color0 = 0.53
-         if band == 'i':
-            bdefault = -0.3
-            color0 = 0.09
-         if band == 'z':
-            bdefault = -0.09
-            color0 = 0.09
-         if band == 'y' or band == 'Y':
-            bdefault = 0.26
-            color0 = 0.05
+
          ccd=int(lsp[10])
          magstd=float(lsp[3])
          mag=float(lsp[14])
@@ -344,7 +341,7 @@ def psm(inmatches,outak,bandid,niter,thresholdit,ksolve,bsolve):
       outfile = infile+'.tmp'
       avg = float(sum/ninfit)
       sigma = math.sqrt(sumsq/ninfit-avg*avg)
-      print "k:"+str(XX[0])+' rms:'+str(sigma)+' n:'+str(ninfit)
+      print 'k:'+str(XX[0])+' rms:'+str(sigma)+' n:'+str(ninfit)
       print 'kerr:'+str(math.sqrt(AAinv[0][0]))
 
    #endfor (iiter)
@@ -366,6 +363,34 @@ def psm(inmatches,outak,bandid,niter,thresholdit,ksolve,bsolve):
       print outputLine,
       ofd.write('b_'+band+' '+str(i)+' '+str('%.3f'%float(XX[nccd+i]))+'\n')
    ofd.close()
+   print XX[1:nccd+1]-25.
+   print XX[nccd+1:]
+
+   # Output the results of fit into a FITS table file...
+   os.system("/bin/rm -f "+outfitsfile)
+   ccds = numpy.arange(1,63)
+   print ccds
+   # Note:  verify errors are what we expect:
+   errors = numpy.sqrt(numpy.diagonal(AAinv))
+   k    = XX[0]*numpy.ones(nccd,dtype=numpy.int)
+   kerr = errors[0]*numpy.ones(nccd,dtype=numpy.int)
+   print k
+   print kerr
+   a    = XX[1:nccd+1]-25.
+   aerr = errors[1:nccd+1]
+   b = XX[nccd+1:]
+   berr = errors[nccd+1:]
+   col1=pyfits.Column(name='ccdid', format='I', array=ccds)
+   col2=pyfits.Column(name='a', format='E', array=a)
+   col3=pyfits.Column(name='aerr', format='E', array=aerr)
+   col4=pyfits.Column(name='b', format='E', array=b)
+   col5=pyfits.Column(name='berr', format='E', array=berr)
+   col6=pyfits.Column(name='k', format='E', array=k)
+   col7=pyfits.Column(name='kerr', format='E', array=kerr)
+   cols=pyfits.ColDefs([col1, col2, col3, col4, col5, col6, col7])
+   tbhdu=pyfits.new_table(cols)
+   tbhdu.writeto(outfitsfile)
+
 
    print "That's all, folks!"
  
@@ -376,11 +401,8 @@ def psm(inmatches,outak,bandid,niter,thresholdit,ksolve,bsolve):
 
 if __name__ == "__main__":
 
-   # If help requested, or if insufficient number of arguments, print out usage.
-   if (sys.argv[1] == '-h') or (sys.argv[1] == '--help'):
-      usage()
-      sys.exit(0)
-   elif len(sys.argv[1:]) < 5:
+   # If insufficient number of required arguments, print out usage...
+   if len(sys.argv[1:]) < 5:
       usage()
       sys.exit(1)
    #endif
