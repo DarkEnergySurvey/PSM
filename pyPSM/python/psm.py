@@ -153,9 +153,10 @@ def psm(inmatches,outak,bandid,niter,thresholdit,ksolve,bsolve):
    #endif
 
 
-   # The input matched file is inmatches; 
-   # the output matched file (used for iterative clipping) is inmatches.tmp; 
-   # the residuals file (used for QA plots) is inmatches.res.
+   # The input matched file is inmatches, 
+   # the output matched file (used for iterative clipping) is inmatches.<fitband>.tmp, 
+   # the residuals file (used for QA plots) is inmatches.<fitband>.res, and 
+   # the FITS table (for upload to the NCSA DES db) is inmatches.<fitband>.fit.
    infile = inmatches
    outfile = inmatches+'.'+fitband+'.tmp'
    resfile = inmatches+'.'+fitband+'.res.csv'
@@ -297,9 +298,12 @@ def psm(inmatches,outak,bandid,niter,thresholdit,ksolve,bsolve):
          AA[iparam_a,:] = 0.0
          AA[iparam_a][iparam_a] = 1.0
          BB[iparam_a] = -9999.00+25.00
-         # Since we always solve for a, any CCD with nstar=0
-         # reduces the number of free parameters by 1...
-         nFreeParam += -1
+         # Since we always solve for a (asolve always equals 1), 
+         # any CCD with nstar=0 reduces the number of free 
+         # parameters by 1...
+         if asolve == 1:
+            nFreeParam += -1
+         #endif
 
          # Fix b's...
          AA[iparam_b,:] = 0.0
