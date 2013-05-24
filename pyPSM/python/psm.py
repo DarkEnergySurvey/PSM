@@ -67,7 +67,8 @@ def psm(inmatches,outak,bandid,niter,thresholdit,ksolve,bsolve):
 
    # Some values which need to be passed either in the psm argument list
    # or derived from info from the inmatches file...
-   # Note that mjdlo and mjdhi are only used for QA plots...
+   # These are part of the PSMFIT table schema, and mjdlo and mjdhi are 
+   # also used for a QA plot.
    nite = '20130221'               # nite of observation
    run = '20130523114356_20130221' # processing run name
    project = 'OPS'                 # project name
