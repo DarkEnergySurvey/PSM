@@ -192,7 +192,7 @@ def psm(inmatches,outak,bandid,niter,thresholdit,ksolve,bsolve):
       sumchi = 0.0
       sumchisq = 0.0
       ninfit = 0.0
-      zv = numpy.zeros(nparam)
+      #zv = numpy.zeros(nparam)
       II = numpy.array(numpy.identity(nparam))
       for i in range(0,nparam):
          for j in range(0,nparam):
@@ -200,6 +200,7 @@ def psm(inmatches,outak,bandid,niter,thresholdit,ksolve,bsolve):
       BB = numpy.zeros(nparam)
       #AA = numpy.vstack([zv,II]).T
       AA = II
+
       # counter of stars on each CCD...
       nstar = numpy.zeros(nccd,dtype=numpy.int)
       fd=open(infile)
@@ -376,10 +377,12 @@ def psm(inmatches,outak,bandid,niter,thresholdit,ksolve,bsolve):
 
       ofd3.close()
       ofd2.close()
+
       infile = outfile
       outfile = infile+'.tmp'
-      dof = ninfit - nFreeParam
+
       photometricFlag = -1
+      dof = ninfit - nFreeParam
       if dof > 0:
          avg = float(sum/ninfit)
          sigma = math.sqrt(float(ninfit)/float(dof))*math.sqrt(sumsq/ninfit-avg*avg)
@@ -395,26 +398,34 @@ def psm(inmatches,outak,bandid,niter,thresholdit,ksolve,bsolve):
             print 'k:'+str(XX[0])+' rms:'+str(sigma)+' n:'+str(ninfit)
             print 'kerr:'+str(math.sqrt(AAinv[0][0]))
          #endif
+      else:
+         print 'Number of free parameters ('+str(nFreeParam)+') >= number of data points ('+str(ninfit)+')'
+         print 'Exiting now!'
+         sys.exit(1)
       #endif
 
    #endfor (iiter)
 
    # Output the results of fit...
-
    os.system("/bin/rm -f "+inmatches+'.'+fitband+'.tmp*')
    ofd=open(outak,'w')
-   ofd.write('n_'+band+' '+str('%d'%int(ninfit))+'\n')
    ofd.write('niter_'+band+' '+str('%d'%int(niter))+'\n')
+   ofd.write('thresholdit_'+band+' '+str('%.4f'%float(thresholdit))+'\n')
+   ofd.write('n_'+band+' '+str('%d'%int(ninfit))+'\n')
+   ofd.write('dof_'+band+' '+str('%d'%int(dof))+'\n')
    ofd.write('rms_'+band+' '+str('%.4f'%float(sigma))+'\n')
-   ofd.write('k_'+band+' '+str('%.3f'%float(XX[0]))+'\n')
+   ofd.write('chisq_'+band+' '+str('%.4f'%float(chisq))+'\n')
+   ofd.write('k_'+band+' '+str('%.3f'%float(XX[0]))+' +/- '+str('%.3f'%float(math.sqrt(AAinv[0][0])))+'\n')
    for i in range(1,63):
       outputLine = 'a_%s %2d %.3f %.3f \n' % (band, i, XX[i]-25., math.sqrt(AAinv[i][i]))
-      print outputLine,
       ofd.write('a_'+band+' '+str(i)+' '+str('%.3f'%float(XX[i]-25.))+'\n')
+      if verbose > 1: print outputLine,
+   #endfor
    for i in range(1,63):
       outputLine = 'a_%s %2d %.3f %.3f \n' % (band, i, XX[nccd+i], math.sqrt(AAinv[nccd+i][nccd+i]))
-      print outputLine,
       ofd.write('b_'+band+' '+str(i)+' '+str('%.3f'%float(XX[nccd+i]))+'\n')
+      if verbose > 1: print outputLine,
+   #endfor
    ofd.close()
 
    # Output the results of fit into a FITS table file...
