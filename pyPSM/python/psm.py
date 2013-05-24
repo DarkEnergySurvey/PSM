@@ -359,8 +359,8 @@ def psm(inmatches,outak,bandid,niter,thresholdit,ksolve,bsolve):
          airmass=float(lsp[12])
          expnum=int(lsp[9])
          # Note:  should change befault to XX[nccd+ccd]
-         dm = (mag + 2.5*math.log(exptime,10) - XX[ccd] - XX[0]*airmass - bdefault*(colorstd-color0)) - magstd
-         #dm = (mag + 2.5*math.log(exptime,10) - XX[ccd] - XX[0]*airmass - XX[nccd+ccd]*(colorstd-color0)) - magstd
+         #dm = (mag + 2.5*math.log(exptime,10) - XX[ccd] - XX[0]*airmass - bdefault*(colorstd-color0)) - magstd
+         dm = (mag + 2.5*math.log(exptime,10) - XX[ccd] - XX[0]*airmass - XX[nccd+ccd]*(colorstd-color0)) - magstd
          sum += dm
          sumsq += dm*dm
          sumchi += dm/totMagErr
