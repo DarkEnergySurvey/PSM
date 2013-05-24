@@ -1,0 +1,2 @@
+envPrepend(PATH, ${PRODUCT_DIR}/pyPSM/python)
+envPrepend(PYTHONPATH, ${PRODUCT_DIR}/pyPSM/python)
