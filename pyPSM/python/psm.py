@@ -45,44 +45,73 @@ def usage():
    print 'Usage:'
    print ' %s <inmatches> <outak> <bandid> <niter> <thresholdit> [--ksolve] [--bsolve] [--verbose=0 (default)] [-h,--help]' % clientName
    print 'where:'
-   print '   inmatches    is the input match file                                (required)'
-   print '   outak        is the output file                                     (required)'
-   print '   bandid       is the band id number (u=0,g=1,r=2,i=3,z=4,Y=5)        (required)'
-   print '   niter        is the number of iterations for the outlier rejection  (required)'
-   print '   thresholdit  is the threshold (in mag) of for the outlier rejection (required)'
-   print '   --ksolve     is a toggle to solve for the k term coefficient        (optional)'
-   print '   --ksolve     is a toggle to solve for the b term coefficients       (optional)'
-   print '   --verbose    is the verbosity level (default=0)                     (optional)'
-   print '   -h,--help    is a toggle to print out this usage guide              (optional)'
+   print '   inmatches                       is the input match file                                 (required)'
+   print '   outak                           is the output file                                      (required)'
+   print '   bandid                          is the band id number (u=0,g=1,r=2,i=3,z=4,Y=5)         (required)'
+   print '   niter                           is the number of iterations for the outlier rejection   (required)'
+   print '   thresholdit                     is the threshold (in mag) of for the outlier rejection  (required)'
+   print '   --ksolve                        is a toggle to solve for the k term coefficient         (optional)'
+   print '   --ksolve                        is a toggle to solve for the b term coefficients        (optional)'
+   print '   --nite=\'20130221\'               is the nite of observation                              (optional)'
+   print '   --run=\'20130523114356_20130221\' is the processing run                                   (optional)'
+   print '   --project=\'OPS\'                 is the project id                                       (optional)'
+   print '   --psmfit_id_last=93234          is the largest psmfit_id currently in PSMFIT            (optional)'
+   print '   --psmversion=\'pyPSM_v0.1\'       is the version of pyPSM being used                      (optional)'
+   print '   --verbose                       is the verbosity level (default=0)                      (optional)'
+   print '   -h,--help                       is a toggle to print out this usage guide               (optional)'
    print 
    print 'Examples:'
    print ' %s matchemup.csv psm_solve_Y.txt 5 4 0.1 --bsolve --ksolve --verbose=3' % clientName
    print ' %s --help' % clientName
    print
 
-
-#---------------------------------------------------------------------------
-
-def psm(inmatches,outak,bandid,niter,thresholdit,ksolve,bsolve):
-
-   # Some values which need to be passed either in the psm argument list
-   # or derived from info from the inmatches file...
-   # These are part of the PSMFIT table schema, and mjdlo and mjdhi are 
-   # also used for a QA plot.
    nite = '20130221'               # nite of observation
    run = '20130523114356_20130221' # processing run name
    project = 'OPS'                 # project name
-   mjdlo = -1.                     # time and date of earliest observation in fit (expressed as an MJD) 
-   mjdhi = -1.                     # time and date of latest observation in fit (expressed as an MJD) 
    psmfit_id_last = 93234          # current largest psmfit_id in the PSMFIT table
    psmversion = 'pyPSM_v0.1'       # psm version id
    mag_type = 'mag_psf'            # type of magnitude used in fit (e.g., mag_psf, mag_aper_8, ...)
+
+#---------------------------------------------------------------------------
+
+def psm(inmatches,outak,bandid,niter,thresholdit,ksolve,bsolve,nite,run,project,psmfit_id_last,psmversion,mag_type,verbose):
+
+   if verbose>1:
+      print 'psm arguments:'
+      print '----------------------------------'
+      print    'inmatches:      '+str(inmatches)
+      print    'outak:          '+str(outak)
+      print    'bandid:         '+str(bandid)
+      print    'niter:          '+str(niter)
+      print    'thresholdit:    '+str(thresholdit)
+      print    'ksolve:         '+str(ksolve)
+      print    'bsolve:         '+str(bsolve)
+      print    'nite:           '+str(nite)
+      print    'run:            '+str(run)
+      print    'project:        '+str(project)
+      print    'psmfit_id_last: '+str(psmfit_id_last)
+      print    'psmversion:     '+str(psmversion)
+      print    'mag_type:       '+str(mag_type)
+      print    'verbose:        '+str(verbose)
+      print
+   #endif
+
+   # mjdlo and mjdhi are relatively low-priority parameters which should
+   # eventually either be passed in the psm argument list or derived 
+   # from info from the inmatches file...
+   # They are part of the PSMFIT table schema and are useful for a QA plot
+   # of residuals vs. time.
+   mjdlo = -1.                     # time and date of earliest observation in fit (expressed as an MJD) 
+   mjdhi = -1.                     # time and date of latest observation in fit (expressed as an MJD) 
    
    # Currently, pyPSM always solves for the a coefficients.
    # If, in the future, the option is added to choose whether
    # or not the a coefficients will be solved for, an "--asolve"
    # toggle should be added to Main method...
    asolve = 1
+
+   # Use the signal value to denote values that are bad or meaningless...
+   signalValue = -9999.00
 
    # Extract info from the list of arguments passed to psm.py...
    # First, convert certain arguments from strings to numbers...
@@ -92,7 +121,6 @@ def psm(inmatches,outak,bandid,niter,thresholdit,ksolve,bsolve):
 
    # Determine which filter band is to be solved for
    bandlist = ['u','g','r','i','z','Y']
-   print len(bandlist)
    if bandid < len(bandlist):
       fitband = bandlist[bandid]
    else:
@@ -298,7 +326,7 @@ def psm(inmatches,outak,bandid,niter,thresholdit,ksolve,bsolve):
          # Fix a's...
          AA[iparam_a,:] = 0.0
          AA[iparam_a][iparam_a] = 1.0
-         BB[iparam_a] = -9999.00+25.00
+         BB[iparam_a] = signalValue+25.00
          # Since we always solve for a (asolve always equals 1), 
          # any CCD with nstar=0 reduces the number of free 
          # parameters by 1...
@@ -309,7 +337,7 @@ def psm(inmatches,outak,bandid,niter,thresholdit,ksolve,bsolve):
          # Fix b's...
          AA[iparam_b,:] = 0.0
          AA[iparam_b][iparam_b] = 1.0
-         BB[iparam_b] = -9999.00
+         BB[iparam_b] = signalValue
          # Only reduce the number of free parameters if we are
          # solving for the b term coefficients...
          if bsolve == 1:
@@ -335,6 +363,16 @@ def psm(inmatches,outak,bandid,niter,thresholdit,ksolve,bsolve):
       #print 'rank', rank
       AAinv = numpy.linalg.inv(AA)
       XX=AAinv.dot(BB)
+      # Note:  verify that these errors are what we expect:
+      errors = numpy.sqrt(numpy.diagonal(AAinv))
+      # Reset aerr and berr to the signal value for any CCDs for which nstar=0...
+      for iccd in range(0,len(badinds)):
+         ccd = badinds[iccd] + 1
+         iparam_a = ccd
+         iparam_b = nccd + ccd
+         errors[iparam_a] = signalValue
+         errors[iparam_b] = signalValue
+      #endfor
 
       # Output to matched catalog output file those stars that
       # survive this iteration's clipping...
@@ -377,10 +415,10 @@ def psm(inmatches,outak,bandid,niter,thresholdit,ksolve,bsolve):
 
       ofd3.close()
       ofd2.close()
-
       infile = outfile
       outfile = infile+'.tmp'
 
+      # Calculate characteristics of the fit...
       photometricFlag = -1
       dof = ninfit - nFreeParam
       if dof > 0:
@@ -393,10 +431,10 @@ def psm(inmatches,outak,bandid,niter,thresholdit,ksolve,bsolve):
          else:
             photometricFlag = 0
          #endif
-         if verbose > 1:
+         if verbose > 3:
             print 'avg:'+str(avg)+'  avgchi:'+str(avgchi)+'  chisq:'+str(chisq)
             print 'k:'+str(XX[0])+' rms:'+str(sigma)+' n:'+str(ninfit)
-            print 'kerr:'+str(math.sqrt(AAinv[0][0]))
+            print 'kerr:'+str(errors[0])
          #endif
       else:
          print 'Number of free parameters ('+str(nFreeParam)+') >= number of data points ('+str(ninfit)+')'
@@ -405,6 +443,7 @@ def psm(inmatches,outak,bandid,niter,thresholdit,ksolve,bsolve):
       #endif
 
    #endfor (iiter)
+
 
    # Output the results of fit...
    os.system("/bin/rm -f "+inmatches+'.'+fitband+'.tmp*')
@@ -415,15 +454,15 @@ def psm(inmatches,outak,bandid,niter,thresholdit,ksolve,bsolve):
    ofd.write('dof_'+band+' '+str('%d'%int(dof))+'\n')
    ofd.write('rms_'+band+' '+str('%.4f'%float(sigma))+'\n')
    ofd.write('chisq_'+band+' '+str('%.4f'%float(chisq))+'\n')
-   ofd.write('k_'+band+' '+str('%.3f'%float(XX[0]))+' +/- '+str('%.3f'%float(math.sqrt(AAinv[0][0])))+'\n')
+   ofd.write('k_'+band+' '+str('%.3f'%float(XX[0]))+' +/- '+str('%.3f'%float(errors[0]))+'\n')
    for i in range(1,63):
-      outputLine = 'a_%s %2d %.3f %.3f \n' % (band, i, XX[i]-25., math.sqrt(AAinv[i][i]))
-      ofd.write('a_'+band+' '+str(i)+' '+str('%.3f'%float(XX[i]-25.))+'\n')
+      outputLine = 'a_%s %2d %.3f +/- %.3f \n' % (band, i, XX[i]-25., errors[i])
+      ofd.write(outputLine)
       if verbose > 1: print outputLine,
    #endfor
    for i in range(1,63):
-      outputLine = 'a_%s %2d %.3f %.3f \n' % (band, i, XX[nccd+i], math.sqrt(AAinv[nccd+i][nccd+i]))
-      ofd.write('b_'+band+' '+str(i)+' '+str('%.3f'%float(XX[nccd+i]))+'\n')
+      outputLine = 'b_%s %2d %.3f +/- %.3f \n' % (band, i, XX[nccd+i], errors[nccd+i])
+      ofd.write(outputLine)
       if verbose > 1: print outputLine,
    #endfor
    ofd.close()
@@ -439,8 +478,6 @@ def psm(inmatches,outak,bandid,niter,thresholdit,ksolve,bsolve):
    ccdidArray = numpy.arange(1,63)
    filterFormat = 'A%d' % len(band)
    filterArray = numpy.array([band]*62)
-   # Note:  verify that these errors are what we expect:
-   errors = numpy.sqrt(numpy.diagonal(AAinv))
    kArray = XX[0]*numpy.ones(nccd,dtype=numpy.int)
    kerrArray = errors[0]*numpy.ones(nccd,dtype=numpy.int)
    aArray = XX[1:nccd+1]-25.
@@ -525,31 +562,50 @@ if __name__ == "__main__":
 
    # Parse any optional arguments (any beyond argument 5)...
    try:
-      opts,args = getopt.getopt(sys.argv[6:],'h',['bsolve', 'ksolve', 'help', 'verbose='])
+      opts,args = getopt.getopt(sys.argv[6:],'hv',['bsolve', 'ksolve', 'nite=', 'run=', 'project=', 'psmfit_id_last=', 'psmversion=', 'mag_type=', 'help', 'verbose='])
    except getopt.GetoptError:
       usage()
       sys.exit(1)
    #end try
 
-   verbose = 0     # Default value for verbosity
-   bsolve  = 0     # Default value for bsolve (0=no, 1=yes)
-   ksolve  = 0     # Default value for ksolve (0=no, 1=yes)
+   # Default values for the optional arguments...
+   verbose = 0                     # Verbosity level (amount of output to screen): 0=little; >3=lots
+   bsolve = 0                      # Solve for b coefficients? (0=no, 1=yes)
+   ksolve = 0                      # Solve for k coefficient?  (0=no, 1=yes)
+   nite = '20130221'               # nite of observation
+   run = '20130523114356_20130221' # processing run name
+   project = 'OPS'                 # project name
+   psmfit_id_last = 93234          # current largest psmfit_id in the PSMFIT table
+   psmversion = 'pyPSM_v0.1'       # psm version id
+   mag_type = 'mag_psf'            # type of magnitude used in fit (e.g., mag_psf, mag_aper_8, ...)
 
    for o, a in opts:
       if o == '--bsolve':
          bsolve = 1
       elif o == '--ksolve':
          ksolve = 1
+      elif o == '--nite':
+         nite = a
+      elif o == '--run':
+         run = a
+      elif o == '--project':
+         project = a
+      elif o == '--psmfit_id_last':
+         psmfit_id_last = int(a)
+      elif o == '--psmversion':
+         psmversion = a
+      elif o == '--mag_type':
+         mag_type = a
       elif o in ('-h', '--help'):
          usage()
          sys.exit(0)
-      elif o in ('--verbose'):
+      elif o in ('-v', '--verbose'):
          verbose = int(a)
       #endif
    #endfor
 
    # Call psm method
-   psm(inmatches,outak,bandid,niter,thresholdit,ksolve,bsolve)
+   psm(inmatches,outak,bandid,niter,thresholdit,ksolve,bsolve,nite,run,project,psmfit_id_last,psmversion,mag_type,verbose)
 
 
 #---------------------------------------------------------------------------
