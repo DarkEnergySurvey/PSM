@@ -9,7 +9,7 @@
 # This file defines methods for solving the photometric zeropoints 
 # (a_1, a_2, ..., a_N), the instrumental color term coefficients
 # (b_1, b_2, ..., b_N), and the first-order extinction (k) for a 
-# given filter for a given night by fitting the following equation 
+# given band for a given night by fitting the following equation 
 # for standard star observations: 
 #    m_inst-m_std = a_1 + ... a_N + 
 #                   b_1*(stdColor-stdColor0) + ... + 
@@ -24,7 +24,7 @@
 # the following, simpler form:
 #    m_inst-m_std = a + b*(stdColor-stdColor0) + kX
 #
-# For the explicit case of the g filter and a g-r color,
+# For the explicit case of the g band and a g-r color,
 # this single-CCD example looks like this:
 #   g_inst-g_std = a + b*( (g-r) - (g-r)_0 ) + kX
 
@@ -53,9 +53,7 @@ def usage():
    print '   --ksolve                        is a toggle to solve for the k term coefficient         (optional)'
    print '   --ksolve                        is a toggle to solve for the b term coefficients        (optional)'
    print '   --nite=\'20130221\'               is the nite of observation                              (optional)'
-   print '   --run=\'20130523114356_20130221\' is the processing run                                   (optional)'
    print '   --project=\'OPS\'                 is the project id                                       (optional)'
-   print '   --psmfit_id_last=93234          is the largest psmfit_id currently in PSMFIT            (optional)'
    print '   --psmversion=\'pyPSM_v0.1\'       is the version of pyPSM being used                      (optional)'
    print '   --verbose                       is the verbosity level (default=0)                      (optional)'
    print '   -h,--help                       is a toggle to print out this usage guide               (optional)'
@@ -66,15 +64,13 @@ def usage():
    print
 
    nite = '20130221'               # nite of observation
-   run = '20130523114356_20130221' # processing run name
    project = 'OPS'                 # project name
-   psmfit_id_last = 93234          # current largest psmfit_id in the PSMFIT table
    psmversion = 'pyPSM_v0.1'       # psm version id
    mag_type = 'mag_psf'            # type of magnitude used in fit (e.g., mag_psf, mag_aper_8, ...)
 
 #---------------------------------------------------------------------------
 
-def psm(inmatches,outak,bandid,niter,thresholdit,ksolve,bsolve,nite,run,project,psmfit_id_last,psmversion,mag_type,verbose):
+def psm(inmatches,outak,bandid,niter,thresholdit,ksolve,bsolve,nite,project,psmversion,mag_type,verbose):
 
    if verbose>1:
       print 'psm arguments:'
@@ -87,9 +83,7 @@ def psm(inmatches,outak,bandid,niter,thresholdit,ksolve,bsolve,nite,run,project,
       print    'ksolve:         '+str(ksolve)
       print    'bsolve:         '+str(bsolve)
       print    'nite:           '+str(nite)
-      print    'run:            '+str(run)
       print    'project:        '+str(project)
-      print    'psmfit_id_last: '+str(psmfit_id_last)
       print    'psmversion:     '+str(psmversion)
       print    'mag_type:       '+str(mag_type)
       print    'verbose:        '+str(verbose)
@@ -119,16 +113,16 @@ def psm(inmatches,outak,bandid,niter,thresholdit,ksolve,bsolve,nite,run,project,
    niter = int(niter)
    thresholdit = float(thresholdit)
 
-   # Determine which filter band is to be solved for
+   # Determine which band is to be solved for
    bandlist = ['u','g','r','i','z','Y']
    if bandid < len(bandlist):
       fitband = bandlist[bandid]
    else:
-      print 'Bandid %d has no corresponding filter...' % bandid
+      print 'Bandid %d has no corresponding band...' % bandid
       sys.exit(1)
    #endif
    
-   # Set certain defaults for each filter...
+   # Set certain defaults for each band...
    if fitband == 'u':
       cfitband = 'g'
       stdColorName = 'u-g'
@@ -470,14 +464,13 @@ def psm(inmatches,outak,bandid,niter,thresholdit,ksolve,bsolve,nite,run,project,
    # Output the results of fit into a FITS table file...
    os.system("/bin/rm -f "+outfitsfile)
    ccdidArray = numpy.arange(1,63)
-   psmfit_idArray = ccdidArray+psmfit_id_last
    niteFormat = 'A%d' % len(nite)
    niteArray = numpy.array([nite]*62)
    mjdloArray = mjdlo*numpy.ones(nccd,dtype=numpy.int)
    mjdhiArray = mjdhi*numpy.ones(nccd,dtype=numpy.int)
    ccdidArray = numpy.arange(1,63)
-   filterFormat = 'A%d' % len(band)
-   filterArray = numpy.array([band]*62)
+   bandFormat = 'A%d' % len(band)
+   bandArray = numpy.array([band]*62)
    kArray = XX[0]*numpy.ones(nccd,dtype=numpy.int)
    kerrArray = errors[0]*numpy.ones(nccd,dtype=numpy.int)
    aArray = XX[1:nccd+1]-25.
@@ -493,47 +486,43 @@ def psm(inmatches,outak,bandid,niter,thresholdit,ksolve,bsolve,nite,run,project,
    fit_timestamp = str(datetime.datetime.utcnow())
    fit_timestampFormat = 'A%d' % len(fit_timestamp)
    fit_timestampArray = numpy.array([fit_timestamp]*62)
-   cfilterFormat = 'A%d' % len(cfitband)
-   cfilterArray = numpy.array([cfitband]*62)
+   cbandFormat = 'A%d' % len(cfitband)
+   cbandArray = numpy.array([cfitband]*62)
    stdcolor0Array = color0*numpy.ones(nccd,dtype=numpy.int)
    asolveArray = asolve*numpy.ones(nccd,dtype=numpy.int)
    bsolveArray = bsolve*numpy.ones(nccd,dtype=numpy.int)
    ksolveArray = ksolve*numpy.ones(nccd,dtype=numpy.int)
-   runFormat = 'A%d' % len(run)
-   runArray = numpy.array([run]*62)
    projectFormat = 'A%d' % len(project)
    projectArray = numpy.array([project]*62)
    mag_typeFormat = 'A%d' % len(mag_type)
    mag_typeArray = numpy.array([mag_type]*62)
    
-   col1  = pyfits.Column(name='psmfit_id',      format='J', array=psmfit_idArray)
-   col2  = pyfits.Column(name='nite',           format=niteFormat, array=niteArray)
-   col3  = pyfits.Column(name='mjdlo',          format='E', array=mjdloArray)
-   col4  = pyfits.Column(name='mjdhi',          format='E', array=mjdhiArray)
-   col5  = pyfits.Column(name='ccdid',          format='I', array=ccdidArray)
-   col6  = pyfits.Column(name='filter',         format=filterFormat, array=filterArray)
-   col7  = pyfits.Column(name='a',              format='E', array=aArray)
-   col8  = pyfits.Column(name='aerr',           format='E', array=aerrArray)
-   col9  = pyfits.Column(name='b',              format='E', array=bArray)
-   col10 = pyfits.Column(name='berr',           format='E', array=berrArray)
-   col11 = pyfits.Column(name='k',              format='E', array=kArray)
-   col12 = pyfits.Column(name='kerr',           format='E', array=kerrArray)
-   col13 = pyfits.Column(name='rms',            format='E', array=rmsArray)
-   col14 = pyfits.Column(name='chi2',           format='E', array=chisqArray)
-   col15 = pyfits.Column(name='dof',            format='I', array=dofArray)
-   col16 = pyfits.Column(name='photomtricflag', format='I', array=photometricFlagArray)
-   col17 = pyfits.Column(name='psmversion',     format=psmversionFormat, array=psmversionArray)
-   col18 = pyfits.Column(name='fit_timestamp',  format=fit_timestampFormat, array=fit_timestampArray)
-   col19 = pyfits.Column(name='cfilter',        format=cfilterFormat, array=cfilterArray)
-   col20 = pyfits.Column(name='stdcolor0',      format='E', array=stdcolor0Array)
-   col21 = pyfits.Column(name='asolve',         format='I', array=asolveArray)
-   col22 = pyfits.Column(name='bsolve',         format='I', array=bsolveArray)
-   col23 = pyfits.Column(name='ksolve',         format='I', array=ksolveArray)
-   col24 = pyfits.Column(name='run',            format=runFormat, array=runArray)
-   col25 = pyfits.Column(name='project',        format=projectFormat, array=projectArray)
-   col26 = pyfits.Column(name='mag_type',       format=mag_typeFormat, array=mag_typeArray)
+   col1  = pyfits.Column(name='nite',           format=niteFormat, array=niteArray)
+   col2  = pyfits.Column(name='mjdlo',          format='E', array=mjdloArray)
+   col3  = pyfits.Column(name='mjdhi',          format='E', array=mjdhiArray)
+   col4  = pyfits.Column(name='ccdid',          format='I', array=ccdidArray)
+   col5  = pyfits.Column(name='band',           format=bandFormat, array=bandArray)
+   col6  = pyfits.Column(name='a',              format='E', array=aArray)
+   col7  = pyfits.Column(name='aerr',           format='E', array=aerrArray)
+   col8  = pyfits.Column(name='b',              format='E', array=bArray)
+   col9 = pyfits.Column(name='berr',           format='E', array=berrArray)
+   col10 = pyfits.Column(name='k',              format='E', array=kArray)
+   col11 = pyfits.Column(name='kerr',           format='E', array=kerrArray)
+   col12 = pyfits.Column(name='rms',            format='E', array=rmsArray)
+   col13 = pyfits.Column(name='chi2',           format='E', array=chisqArray)
+   col14 = pyfits.Column(name='dof',            format='I', array=dofArray)
+   col15 = pyfits.Column(name='photomtricflag', format='I', array=photometricFlagArray)
+   col16 = pyfits.Column(name='psmversion',     format=psmversionFormat, array=psmversionArray)
+   col17 = pyfits.Column(name='fit_timestamp',  format=fit_timestampFormat, array=fit_timestampArray)
+   col18 = pyfits.Column(name='cband',          format=cbandFormat, array=cbandArray)
+   col19 = pyfits.Column(name='stdcolor0',      format='E', array=stdcolor0Array)
+   col20 = pyfits.Column(name='asolve',         format='I', array=asolveArray)
+   col21 = pyfits.Column(name='bsolve',         format='I', array=bsolveArray)
+   col22 = pyfits.Column(name='ksolve',         format='I', array=ksolveArray)
+   col23 = pyfits.Column(name='project',        format=projectFormat, array=projectArray)
+   col24 = pyfits.Column(name='mag_type',       format=mag_typeFormat, array=mag_typeArray)
 
-   cols=pyfits.ColDefs([col1, col2, col3, col4, col5, col6, col7, col8, col9, col10, col11, col12, col13, col14, col15, col16, col17, col18, col19, col20, col21, col22, col23, col24, col25, col26])
+   cols=pyfits.ColDefs([col1, col2, col3, col4, col5, col6, col7, col8, col9, col10, col11, col12, col13, col14, col15, col16, col17, col18, col19, col20, col21, col22, col23, col24])
    tbhdu=pyfits.new_table(cols)
    tbhdu.writeto(outfitsfile)
 
@@ -562,7 +551,7 @@ if __name__ == "__main__":
 
    # Parse any optional arguments (any beyond argument 5)...
    try:
-      opts,args = getopt.getopt(sys.argv[6:],'hv',['bsolve', 'ksolve', 'nite=', 'run=', 'project=', 'psmfit_id_last=', 'psmversion=', 'mag_type=', 'help', 'verbose='])
+      opts,args = getopt.getopt(sys.argv[6:],'hv',['bsolve', 'ksolve', 'nite=', 'project=', 'psmversion=', 'mag_type=', 'help', 'verbose='])
    except getopt.GetoptError:
       usage()
       sys.exit(1)
@@ -573,9 +562,7 @@ if __name__ == "__main__":
    bsolve = 0                      # Solve for b coefficients? (0=no, 1=yes)
    ksolve = 0                      # Solve for k coefficient?  (0=no, 1=yes)
    nite = '20130221'               # nite of observation
-   run = '20130523114356_20130221' # processing run name
    project = 'OPS'                 # project name
-   psmfit_id_last = 93234          # current largest psmfit_id in the PSMFIT table
    psmversion = 'pyPSM_v0.1'       # psm version id
    mag_type = 'mag_psf'            # type of magnitude used in fit (e.g., mag_psf, mag_aper_8, ...)
 
@@ -586,12 +573,8 @@ if __name__ == "__main__":
          ksolve = 1
       elif o == '--nite':
          nite = a
-      elif o == '--run':
-         run = a
       elif o == '--project':
          project = a
-      elif o == '--psmfit_id_last':
-         psmfit_id_last = int(a)
       elif o == '--psmversion':
          psmversion = a
       elif o == '--mag_type':
@@ -605,7 +588,7 @@ if __name__ == "__main__":
    #endfor
 
    # Call psm method
-   psm(inmatches,outak,bandid,niter,thresholdit,ksolve,bsolve,nite,run,project,psmfit_id_last,psmversion,mag_type,verbose)
+   psm(inmatches,outak,bandid,niter,thresholdit,ksolve,bsolve,nite,project,psmversion,mag_type,verbose)
 
 
 #---------------------------------------------------------------------------
