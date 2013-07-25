@@ -14,5 +14,11 @@ install:
 	-mkdir -p ${DES_HOME}/share/java
 	-rsync -vCaq lib/* ${DES_HOME}/share/java/PSM
 
+installunitrunning:
+	@echo "PSM: Installing to ${INSTALL_DIR}"
+	-mkdir -p ${INSTALL_DIR}/pyPSM
+	-rsync -vCaq pyPSM/python ${INSTALL_DIR}/pyPSM
+	
+
 clean:
 	@echo "PSM: Nothing to clean"
