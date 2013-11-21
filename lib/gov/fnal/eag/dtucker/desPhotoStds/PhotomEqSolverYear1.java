@@ -10,6 +10,7 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.StringTokenizer;
+import java.util.Arrays;
 
 import nom.tam.fits.*;
 import nom.tam.util.BufferedFile;
@@ -79,6 +80,12 @@ public class PhotomEqSolverYear1 {
 	private String stdTable = "standard_stars_all";
 	private int standard_set_in = 3;
 	private String fitTable = "psmfit";
+	private boolean updateDB = false; //set to true if updating fitTable directly
+	private double updateDB_rms_limit = 0.05; 
+	private boolean ignoreRasicam = false;
+	private String rasicamDECamTable = "GRUENDL.rasicam_decam";
+	private String rasicamDECamSource = "HEADER";
+
 
 	// Instance variables dealing with this execution of the Photometric 
 	// Standards Module
@@ -111,7 +118,6 @@ public class PhotomEqSolverYear1 {
 	// Instance variables dealing with the fit
 	private int niterations = 3; // for outlier removal in fit
 	private double nsigma = 2.5; // for outlier removal in fit
-	private boolean updateDB = false; //set to true if updating fitTable directly
 	private boolean useOnlyCurrentObjects = false; //set to true if only using objects from the OBJECTS_CURRENT table
 	
 	private double stdColor0   = 0.00;   //reference or fiducial standard color
@@ -216,7 +222,7 @@ public class PhotomEqSolverYear1 {
 		Class.forName(sqlDriver);
 		String fullURL = url + dbName;
 		Connection db = DriverManager.getConnection(fullURL, user, passwd);
-		
+
 		String query0;
 		double magLoTemp =  8.;
 		double magHiTemp = 25.;
@@ -273,7 +279,63 @@ public class PhotomEqSolverYear1 {
 			System.out.println("query4 = " + query4);
 			System.out.println("");
 		}
+	
+		ArrayList rasicamExposureidExcludeArrayList = new ArrayList();
+		if (ignoreRasicam == false) {
+
+			String query5 = "SELECT e.nite, e.id, e.band, rasicam.gskyphot, rasicam.source " +
+			                "FROM exposure e join " + rasicamDECamTable + " rasicam on rasicam.exposureid=e.id " +
+			                "WHERE e.nite=" + nite + " AND UPPER(rasicam.source)='" + rasicamDECamSource.toUpperCase() + "' " + 
+			                "ORDER BY e.id";
+			if (verbose > 1) {
+				System.out.println("query5 = " + query5);
+				System.out.println("");
+			}
+						
+
+			if (verbose > 1) {
+				System.out.println("Create list of all exposures taken this night in this filter under conditions RASICAM recorded as non-photometric...");
+			}
+
+			int i = 0;
+			int ii = 0;
+			
+			Statement st5 = db.createStatement();
+			ResultSet rs5 = st5.executeQuery(query5);
+
+			while (rs5.next()) {
+
+				i++;
+				int night = rs5.getInt("nite");
+				long exposure_id = rs5.getLong("id");
+				String band = rs5.getString("band");
+				String gskyphot = rs5.getString("gskyphot");
+				String src = rs5.getString("source");
+				if (verbose > 2) {
+					System.out.println(i + "\t" + night + "\t" + exposure_id + "\t" + band + "\t" + gskyphot + "\t" + src);
+				}
+				if (band.equalsIgnoreCase(filter) && gskyphot.equalsIgnoreCase("F") && (rasicamExposureidExcludeArrayList.contains(exposure_id) == false) ) {
+					rasicamExposureidExcludeArrayList.add(new Long(exposure_id));
+					if (verbose > 1) {	
+						System.out.println(ii + "\t" + exposure_id + " added to RASICAM exposureid exclude list");
+						ii++;
+					}
+				}
+
+			}
+			
+			if (i==0) {
+				System.out.println("QA3BEG WARNING: None of the exposures taken this night are in the rasicamDECamTable " + rasicamDECamTable + " QA3END");
+				System.out.println("QA3BEG          Was RASICAM running this night? QA3END");
+				System.out.println("");
+			}
+			
+			rs5.close();
+			st5.close();
+			
+		}
 		
+		//System.exit(5);
 		
 		// Create array list of image id's to be excluded from the fit...
 		ArrayList imageidExcludeArrayList = new ArrayList();
@@ -329,6 +391,21 @@ public class PhotomEqSolverYear1 {
 		for (iccd=0; iccd<100; iccd++) {
 			ccdIdArray[iccd] = -1;
 		}
+
+		// Set up an array of exposure IDs...
+		long expIdArray[] = new long[1000];
+		// iexp is the index of the expIdArray, nexp is the total 
+		// number of exposures in the fit...
+		int iexp = 0;
+		int nexp = 0;
+		// Initialize expIdArray...
+		for (iexp=0; iexp<1000; iexp++) {
+			expIdArray[iexp] = -1;
+		}
+		//Also set up and array list of exposure IDs...
+		ArrayList expIdArrayList = new ArrayList();
+
+
 
 		// These variables are used later for the mag residuals vs focal plane position QA plot.
 		// xCenter and yCenter denotes the position of the center of the focal plane in pixel coordinates
@@ -461,6 +538,19 @@ public class PhotomEqSolverYear1 {
 				continue;
 			}
 
+			//New (7 Nov 2013):
+			if (ignoreRasicam == false) {
+				// If this star lies in an exposure that RASICAM identifies as non-photometric, skip it
+				if (rasicamExposureidExcludeArrayList.contains(exposure_id) == true) {
+					if (verbose > 0) {
+						System.out.println("objectid " + object_id +  " lies within exposureid " + exposure_id + 
+						 					", which RASICAM identifies as being non-photometric...  skipping... ");
+					}
+					continue;
+				}
+			}
+
+			
 			// If this star's standard color falls outside the standard color range, skip it..
 			double stdColor = 0.;
 			if (filter.equals("u")) {
@@ -523,6 +613,21 @@ public class PhotomEqSolverYear1 {
 			
 			}
 
+			// Have we encountered this exposure_id before? If not, add it to the list of exposures... 
+			int foundExpId = 0;
+			for (iexp = 0; iexp < nexp; iexp++) {
+				if (expIdArray[iexp] == exposure_id) {
+					foundExpId = 1;
+					break;
+				}
+			}
+			if (foundExpId == 0) {
+				// if we get here, iexp=nexp
+				expIdArray[iexp] = exposure_id;
+				nexp++;
+				expIdArrayList.add(new Long(exposure_id));
+			}
+
 			// Add mStdStar to the appropriate mStdStarList for the 
 			// given CCD
 			MatchedStdStarYear1 mStdStar = new MatchedStdStarYear1();
@@ -569,7 +674,8 @@ public class PhotomEqSolverYear1 {
 		st2.close();
 		st3.close();
 
-		if (verbose > 2) {
+		//if (verbose > 2) {
+		if (verbose > 1) {
 			System.out.println("iccd \t ccdIdArray[iccd]");
 			for (iccd = 0; iccd < nccd; iccd++) {
 				System.out.println(iccd + "\t" + ccdIdArray[iccd]);
@@ -577,6 +683,210 @@ public class PhotomEqSolverYear1 {
 			System.out.println("");
 		}
 
+		//if (verbose > 2) {
+		if (verbose > 1) {
+			System.out.println("iexp \t expIdArray[iexp]");
+			for (iexp = 0; iexp < nexp; iexp++) {
+				System.out.println(iexp + "\t" + expIdArray[iexp]);
+			}
+			System.out.println("");
+		}		
+		
+		
+		//Dome Occlusion Test (15 Nov 2013).
+		//Currently, the dome occlusion test has been tailored for use with DECam data
+		//With the many new project names, it is easier to assume all but the various BCS projects use the DECam focal plane.
+		//if (!project.equalsIgnoreCase("BCS") && !project.equalsIgnoreCase("SCS") && !project.equalsIgnoreCase("SPT") && !project.equalsIgnoreCase("CPT")) {
+
+		if (verbose > 0) {
+			System.out.println("Checking and removing dome-occluded exposures.");
+			System.out.println("");
+		}
+
+		for (iexp = 0; iexp < nexp; iexp++) {
+
+			ArrayList zpArrayList = new ArrayList();
+			ArrayList zpCcdIdArrayList = new ArrayList();
+
+			for (iccd = 0; iccd < nccd; iccd++) {
+
+				// Ignore problem CCDs...
+				if (	ccdIdArray[iccd] == 61 || 
+						ccdIdArray[iccd] == 31 || 
+						ccdIdArray[iccd] == 33 || 
+						ccdIdArray[iccd] == 44 || 
+						ccdIdArray[iccd] == 15 ) {continue;}
+
+				ArrayList deltamagArrayList = new ArrayList();
+
+				int size = mStdStarList[iccd].size();
+
+				if (size > 0) {
+
+					for (int j = 0; j < size; j++) {
+
+						MatchedStdStarYear1 mStdStar = (MatchedStdStarYear1) mStdStarList[iccd].get(j);
+
+						double deltamag = mStdStar.getDeltamag();
+						long exposure_id = mStdStar.getExposure_id();
+						if (expIdArray[iexp] == exposure_id) {
+							deltamagArrayList.add(new Double(deltamag));
+						}
+
+					}
+
+				}
+
+				System.out.println(iexp + "\t" + expIdArray[iexp]+ "\t" + iccd + "\t" + ccdIdArray[iccd] + "\t" + deltamagArrayList.size());
+
+				// Only consider CCDs with at least 5 stars on them...
+				if (deltamagArrayList.size() >= 5) {
+
+					//Easier to sort an array (without thinking hard) rather than an ArrayList...
+					double deltamagList[] = new double[deltamagArrayList.size()];
+					for (int j = 0; j < deltamagArrayList.size(); j++) {
+						deltamagList[j] = (Double) deltamagArrayList.get(j);
+						System.out.print(deltamagList[j] + " ");
+					}
+					System.out.println("");
+					Arrays.sort(deltamagList);
+
+					for (int j = 0; j < deltamagArrayList.size(); j++) {
+						System.out.print(deltamagList[j] + " ");
+					}
+					System.out.println("");
+
+					//Find median...
+					int middle = deltamagList.length/2;
+					double median;
+					if (deltamagList.length%2 == 1) {
+						median = deltamagList[middle];
+					} else {
+						median = (deltamagList[middle-1] + deltamagList[middle]) / 2.0;
+					}
+
+					if (verbose > 1) {
+						for (int j = 0; j < deltamagArrayList.size(); j++) {
+							deltamagList[j] = deltamagList[j] - median;
+							System.out.print(deltamagList[j] + " ");
+						}	
+						System.out.println("");
+					}
+
+					// For the purposes of this sanity check, the median is the zeropoint for this ccd...
+					System.out.println("Median(" + ccdIdArray[iccd] + ") = "  + median);
+					zpArrayList.add(new Double(median));
+					zpCcdIdArrayList.add(new Integer(ccdIdArray[iccd]));
+
+				}
+
+			}
+
+			//
+			// Check for pCcdIdArrayList.size() > 50...
+			//
+			
+			//Find median of zpList.  Don't forget to sort!
+			int zpSize = zpArrayList.size();
+			int zpCcdIdList[] = new int[zpSize];
+			double zpList[] = new double[zpSize];
+			double zpSortedList[] = new double[zpSize];
+			for (int j = 0; j < zpSize; j++) {
+				zpCcdIdList[j] = (Integer) zpCcdIdArrayList.get(j);
+				zpList[j] = (Double) zpArrayList.get(j);
+				zpSortedList[j] = zpList[j];
+			}
+			Arrays.sort(zpSortedList);
+			int middle = zpSortedList.length/2;
+			double median;
+			if (zpSortedList.length == 0) {
+				median = -9999.;
+			} else if (zpSortedList.length%2 == 1) {
+				median = zpSortedList[middle];
+			} else {
+				median = (zpSortedList[middle-1] + zpSortedList[middle]) / 2.0;
+			}
+			System.out.println("Median(zpSortedList) = " + median + " size(zpSortedList) = " + zpSortedList.length);
+			
+			boolean domeOcclusion = false;
+			for (int j = 0; j < zpArrayList.size(); j++) {
+				zpList[j] = zpList[j] - median;
+				if (Math.abs(zpList[j]) > 0.04) {
+					System.out.println(expIdArray[iexp]+ "\t" + zpCcdIdList[j] + "\t" + zpList[j] + "\t ***********");
+					domeOcclusion = true;
+				} else {
+					System.out.println(expIdArray[iexp]+ "\t" + zpCcdIdList[j] + "\t" + zpList[j]);
+				}
+			}
+
+			//for (iccd = 0; iccd < nccd; iccd++) {
+			//	zpList[iccd] = zpList[iccd] - median;
+			//	System.out.println(expIdArray[iexp]+ "\t" + ccdIdArray[iccd] + "\t" + zpList[iccd]);
+			//}
+
+			// Cull stars on this (likely) dome-occluded exposure...
+			//domeOcclusion = false;
+			if (domeOcclusion) {
+				
+				expIdArrayList.remove(new Long(expIdArray[iexp]));
+				
+				if (verbose > 1) {
+					System.out.println("        (removing outliers)");
+				}
+				for (iccd = 0; iccd < nccd; iccd++) {
+					int size = mStdStarList[iccd].size();
+					if (size > 0) {
+						for (int j = 0; j < size; j++) {
+							int jj = (size - 1) - j;
+							MatchedStdStarYear1 mStdStar = (MatchedStdStarYear1) mStdStarList[iccd].get(jj);
+							long exposure_id = mStdStar.getExposure_id();
+							if (expIdArray[iexp] == exposure_id) {
+								if (verbose > 1) {
+									long object_id = mStdStar.getObject_id();
+									System.out
+									.println("        Removing object (object_id: " 
+														 + object_id +  
+														 ") on CCD "
+														 + ccdIdArray[iccd]
+														 + " in likely occluded exposure "
+											             + exposure_id + ")");
+											             
+								}
+								mStdStarList[iccd].remove(jj);
+							}
+						}
+					}
+					//if (verbose > 0) {
+						//System.out.println("ccd: " + ccdIdArray[iccd] + "\t" + "old size: " + size + "\t new size: " + mStdStarList[iccd].size());
+					//}
+				}
+
+				System.out.println("");
+				
+			}
+			
+		}
+
+		if (verbose > 1) {
+			System.out.println("Number of exposures left after dome occlusion sanity check:  " + expIdArrayList.size() + " out of " + nexp + " originally.");
+		}
+		
+		// If we have no exposures left, exit with warning...
+		if (expIdArrayList.size() <= 0) {
+			System.out.println("STATUS5BEG ** No exposures left after dome occlusion sanity check...  Exiting now! ** STATUS5END");
+			System.exit(3);
+		} 
+		// If we have only one exposure left, we must use the default k even if ksolve was set true...
+		if (ksolve && expIdArrayList.size() == 1) {
+			if (verbose > 0) {
+				System.out.println("Only one exposure left ater dome occlusion sanity check... using default k for the solution...");
+				System.out.println("");
+			}
+			ksolve = false;
+		}
+			
+			
+		
 		if (verbose > 0) {
 			System.out.println("Fitting data points.");
 			System.out.println("");
@@ -662,6 +972,24 @@ public class PhotomEqSolverYear1 {
 			//(Re-)initialize arrays...
 			double[][] array2d = new double[nparam][nparam];
 			double[] array1d = new double[nparam];
+			
+			// Check if there are stars on each CCD in the mStdStarList array...
+			// If not, exit with error.
+			// (This can happen during the sigma-clipping process.)
+			boolean starsFlag = false;
+			for (iccd = 0; iccd < nccd; iccd++) {
+				int size = mStdStarList[iccd].size();
+				if (size <= 0) {
+					if (verbose > 1) {
+						System.out.println("QA3BEG WARNING:  No std stars remaining on CCD " + ccdIdArray[iccd] + " QA3END");
+					}
+					starsFlag = true;
+				}
+			}
+			if (starsFlag) {
+				System.out.println("STATUS5BEG ** Lost all std stars on one or more CCDs during sigma-clipping process...  Exiting now! ** STATUS5END");
+    			System.exit(3);
+			}
 			
 			// Populate arrays containing the matrix to be inverted...
 			//   Parameter "0" is k; parameters 1->nccd are a_1, 
@@ -977,8 +1305,14 @@ public class PhotomEqSolverYear1 {
 		}
 
 		if (verbose == 1 && updateDB) {
-			System.out.println("Since updateDB option was set, the " + fitTable + " table will be updated.");
-			System.out.println("");
+			if (rms < updateDB_rms_limit) {
+				System.out.println("Since updateDB option was set, the " + fitTable + " table will be updated.");
+				System.out.println("");
+			} else {
+				System.out.println("Although updateDB option was set, the rms of the solution was too high (" + rms + " >= " + updateDB_rms_limit + ");"); 
+				System.out.println("so the " + fitTable + " table will *NOT* be updated.");
+				System.out.println("");
+			}
 		}
 		
 		// Find latest psmfit_id in database
@@ -1081,7 +1415,7 @@ public class PhotomEqSolverYear1 {
 
 
 			// Set to true when updating the database table fitTable...
-			if (updateDB) {
+			if (updateDB && (rms < updateDB_rms_limit)) {
 				if (verbose > 1) {
 					System.out.println("Inserting following values into table "
 							+ fitTable + " (entry " + psmfit_id + "): ");
@@ -2604,6 +2938,38 @@ public class PhotomEqSolverYear1 {
 
 	public void setExposureidExcludeList(String exposureidExcludeList) {
 		this.exposureidExcludeList = exposureidExcludeList;
+	}
+
+	public double getUpdateDB_rms_limit() {
+		return updateDB_rms_limit;
+	}
+
+	public void setUpdateDB_rms_limit(double updateDB_rms_limit) {
+		this.updateDB_rms_limit = updateDB_rms_limit;
+	}
+
+	public String getRasicamDECamTable() {
+		return rasicamDECamTable;
+	}
+
+	public void setRasicamDECamTable(String rasicamDECamTable) {
+		this.rasicamDECamTable = rasicamDECamTable;
+	}
+
+	public String getRasicamDECamSource() {
+		return rasicamDECamSource;
+	}
+
+	public void setRasicamDECamSource(String rasicamDECamSource) {
+		this.rasicamDECamSource = rasicamDECamSource;
+	}
+
+	public boolean getIgnoreRasicam() {
+		return ignoreRasicam;
+	}
+
+	public void setIgnoreRasicam(boolean ignoreRasicam) {
+		this.ignoreRasicam = ignoreRasicam;
 	}
 
 }
