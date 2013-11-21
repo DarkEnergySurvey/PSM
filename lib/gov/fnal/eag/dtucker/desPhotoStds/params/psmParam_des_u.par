@@ -1,40 +1,50 @@
-#An example parameter file for PhotomEqSolverRunDC4 for the DES data in the g filter
-# (Also usable for PhotomEqSolverRun2b in griz)
+#An example parameter file for PhotomEqSolverRunYear1 for the DES data in the u filter
 
 #The values in this file will override the default values hardwired into the PSM code,
 # but the the values in this file will themselves be overridden by any values given to 
 # the optional parameters in the command line argument list for 
-# java gov.fnal.eag.dtucker.desPhotoStds.PhotomEqSolverRunDC4
+# java gov.fnal.eag.dtucker.desPhotoStds.PhotomEqSolverRunYear1
 
 #Parameters that deal with the observations
 filter          u
-nite            20081013
-project         DES          # the project parameter has replaced the instrument and telescope parameters starting with PhotomEqSolverRunDC4
+nite            20130922
+project         OPS          
 ccdid           0            #0=all CCDs; otherwise, give CCD number (e.g., 29)
-imageType       remap
+imageType       red
 imageNameFilter %
-run             20081030000000_20081013  # the run parameter has replaced the runiddesc parameter starting with PhotomEqSolverRunDC4
+run             20130924065434_20130922  
 
 #Parameters that deal with the database
-#url             jdbc:oracle:thin:@desdb.cosmology.illinois.edu:1521:   # can be done here, but better obtained via .desdm file
-#dbName          des                #can be done here, but better obtained via .desdm file
-debug           false               #if debug=true, the psmfit table is NOT updated
+#url             jdbc:oracle:thin:@//leovip148.ncsa.uiuc.edu:1521:   # can be done here, but better obtained via .desdm file
+#dbName          desoper            #can be done here, but better obtained via .desdm file
+
+updateDB         false              #if updateDB=false, the psmfit table is NOT updated
+updateDB_rms_limit 0.05             #even if updateDB=true, don't update psmfit table if the rms of the PSM solution is greater than this
+
 stdTable        standard_stars_all  #name of standard stars table to be used
-standard_set_in    4                #which set of standards from stdTable to use: 
+standard_set_in    6                #which set of standards from stdTable to use: 
                                     #    1=standard_stars (original)
                                     #    2=standard_stars_dc5
-                                    #    3=standard_stars_sdss_sv_v1 (currently preferred)
+                                    #    3=standard_stars_sdss_sv_v1
                                     #    4=hybrid (1 matched with UKIDSS DR8 Yab)
+                                    #    5=SDSS stars from Stripe 9,10,11,12,13 (Northern Galactic Cap) + 2 IRAF standards, all matched with UKIDSS Yab
+                                    #    6=4+5, all converted to DECam CCD=35 natural system
+
+ignoreRasicam       false                  # ignore the RASICAM photometricity info in RASICAM_DECam table?
+rasicamDECamTable   GRUENDL.rasicam_decam  # name of the RASICAM_DECam table
+rasicamDECamSource  HEADER                 # name of source to use in RASICAM_DECam table
 
 #Parameters that deal with the fit
 stdColor0       1.39         #zeropoint color in m_inst-m_std = a + b*(stdColor-stdColor0) + kX
-                             #in general, use 1.39 for u; 0.53 for g and r; use 0.09 for i and z; 0.05 for Y
+                             #in general, use 1.39 for u; use 0.53 for g and r; use 0.09 for i and z; use 0.05 for Y
+
+magType      mag_psf         #type of sextractor mag to use from database
 
 magLo           15.0         #use only those standard stars with mags between magLo & magHi
 magHi           18.0
 
-expTimeLo        2.0         #use only objects with exposure times (in seconds) between expTimeLo and expTimeHi 
-expTimeHi      100.0
+expTimeLo        1.0         #use only objects with exposure times (in seconds) between expTimeLo and expTimeHi 
+expTimeHi       60.0
 
 stdColorLo      0.50         #use only those standard stars with u-g colors between stdColorLo & stdColorHi
 stdColorHi      3.50         
@@ -51,10 +61,6 @@ bsolve          false        #solve for b? (true/false)
 bccdidArray         1      2      3      4      5      6      7      8      9     10     11     12     13     14     15     16     17     18     19     20     21     22     23     24     25     26     27     28     29     30     31     32     33     34     35     36     37     38     39     40     41     42     43     44     45     46     47     48     49     50     51     52     53     54     55     56     57     58     59     60     61     62  
 bdefaultArray     0.000  0.000  0.000  0.000  0.000  0.000  0.000  0.000  0.000  0.000  0.000  0.000  0.000  0.000  0.000  0.000  0.000  0.000  0.000  0.000  0.000  0.000  0.000  0.000  0.000  0.000  0.000  0.000  0.000  0.000  0.000  0.000  0.000  0.000  0.000  0.000  0.000  0.000  0.000  0.000  0.000  0.000  0.000  0.000  0.000  0.000  0.000  0.000  0.000  0.000  0.000  0.000  0.000  0.000  0.000  0.000  0.000  0.000  0.000  0.000  0.000  0.000
 bdefaultErrArray  0.003  0.003  0.003  0.003  0.003  0.003  0.003  0.003  0.003  0.003  0.003  0.003  0.003  0.003  0.003  0.003  0.003  0.003  0.003  0.003  0.003  0.003  0.003  0.003  0.003  0.003  0.003  0.003  0.003  0.003  0.003  0.003  0.003  0.003  0.003  0.003  0.003  0.003  0.003  0.003  0.003  0.003  0.003  0.003  0.003  0.003  0.003  0.003  0.003  0.003  0.003  0.003  0.003  0.003  0.003  0.003  0.003  0.003  0.003  0.003  0.003  0.003
-# Notes on bsolve, ccdidArray, bdefaultArray, and bdefaultErrArry: 
-#   -- bccdidArray, bdefaultArray, and bdefaultErrArry ignored by PhotomEqSolverRun2b
-#   -- Fixed values of bdefaultArray and bdefaultErrArray from 
-#      https://desweb.cosmology.uiuc.edu/confluence/display/DESAST/Overview+of+BCS+photometry+corrections (as of 13 Oct 2008)
 
 
 
@@ -64,21 +70,10 @@ bdefaultErrArray  0.003  0.003  0.003  0.003  0.003  0.003  0.003  0.003  0.003 
 ########################################################################
 # Deprecated parameter file parameters ("#" those to be ignored by code)
 ########################################################################
-#psmVersion      v_DC4       #version of the PSM code used (grab from the code or via argument list)
-
-instrument      DECam        #the instrument parameter has been deprecated starting with PhotomEqSolverRunDC4
-
-telescope       "Blanco 4m"  #the telescope parameter has been deprecated starting with PhotomEqSolverRunDC4
-
-runiddesc       %            #the runiddesc parameter has been deprecated starting with PhotomEqSolverRunDC4
+#psmVersion      v_Year1       #version of the PSM code used (grab from the code or via argument list)
 
 verbose         1            #preferred method of controlling verbosity level is via command line argument list
 
-bdefault         0.000       #the bdefault parameter has been deprecateed starting with PhotomEqSolverRunDC4
-                             # (although it can still be issued as an option from the command line)
-
-bdefaultErr      0.003       #the bdefaultErr parameter has been deprecated starting with PhotomEqSolverRunDC4
-                             # (although it can still be issued as an option from the command line)
 
 
 
@@ -86,7 +81,5 @@ bdefaultErr      0.003       #the bdefaultErr parameter has been deprecated star
 # Future passable parameters???
 ######################################
 #filterList    "u g r i z Y"   #eventually generalize for other filter sets (UBVRI, ...)
-#stdColorName  "g-r"
-#stdColorMin  -100.00
-#stdColorMax   100.00
-######################################
+#stdColorName  "u-g"
+#####################################
