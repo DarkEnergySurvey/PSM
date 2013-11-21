@@ -63,10 +63,14 @@ public class PhotomEqSolverRunYear1 {
         double kdefaultDefault        = ph.getKdefault();
         double kdefaultErrDefault     = ph.getKdefaultErr();
         boolean updateDBDefault       = ph.getUpdateDB();
+        double updateDB_rms_limitDefault = ph.getUpdateDB_rms_limit();
         boolean useOnlyCurrentObjectsDefault = ph.getUseOnlyCurrentObjects();
         boolean skipQAPlotsDefault    = ph.getSkipQAPlots();
         String stdTableDefault        = ph.getStdTable();
         int standard_set_inDefault    = ph.getStandard_set_in();
+        boolean ignoreRasicamDefault  = ph.getIgnoreRasicam();
+        String rasicamDECamTableDefault = ph.getRasicamDECamTable();
+        String rasicamDECamSourceDefault = ph.getRasicamDECamSource();
         int verboseDefault            = ph.getVerbose();
         
         // Create output message...
@@ -108,11 +112,15 @@ public class PhotomEqSolverRunYear1 {
 				"   --kdefault VALUE              default value for k                   [default: " + kdefaultDefault + "] \n" +
 				"   --kdefaultErr VALUE           1sigma error in default value for k   [default: " + kdefaultErrDefault + "] \n" +
 				"   -v VALUE, --verbose VALUE     verbosity level (0, 1, 2, ...)        [default: " + verboseDefault + "] \n" + 
-				"   --updateDB                    include this flag if the database is to be updated directly \n" +
+				"   --updateDB                    include this flag if the database is to be updated directly (condition on whether rms of PSM solution is < updateDB_rms_limit \n" +
+				"   --updateDB_rms_limit VALUE    if rms >= to this value, do not update DB directly [default: " + updateDB_rms_limitDefault + "] \n" +
 				"   --useOnlyCurrentObjects       include this flag to use only objects in the OBJECTS_CURRENT table \n" + 
 				"   --skipQAPlots                 skip generation of QA plots?          [default: " + skipQAPlotsDefault + "] \n" + 
 				"   --stdTable VALUE              database std star table to use        [default: " + stdTableDefault + "] \n" +
 				"   --standard_set_in VALUE       database std star table set to use    [default: " + standard_set_inDefault + "] \n" +
+				"   --ignoreRasicam               include this flag if the RASICAM photometricity indicators are to be ignored \n" +
+				"   --rasicamDECamTable VALUE     database RASICAM_DECam table to use   [default: " + rasicamDECamTableDefault + "] \n" +
+				"   --rasicamDECamSource VALUE    database RASICAM_DECam source to use  [default: " + rasicamDECamSourceDefault + "] \n" +
 				"   -h, --help                    this message \n\n" + 
 				"   Example 1: \n" +
 				"      java gov.fnal.eag.dtucker.desPhotoStds.PhotomEqSolverRunYear1 --url jdbc:oracle:thin:@charon.ncsa.uiuc.edu:1521: --dbName des  -u myUserName -p myPassword -P BCS -n 20061223 -f g --ccdid 0 --magLo 15.0 --magHi 18.0 --niter 3 --nsigma 2.5 --imageType remap --imageNameFilter % --run 20080324000000_20061223 --psmVersion v_Year1 -v 2 --bsolve --ksolve \n\n" +
@@ -247,10 +255,14 @@ public class PhotomEqSolverRunYear1 {
         double kdefaultDefault        = ph.getKdefault();
         double kdefaultErrDefault     = ph.getKdefaultErr();
         boolean updateDBDefault       = ph.getUpdateDB();
+        double updateDB_rms_limitDefault = ph.getUpdateDB_rms_limit();
         boolean useOnlyCurrentObjectsDefault = ph.getUseOnlyCurrentObjects();
         boolean skipQAPlotsDefault    = ph.getSkipQAPlots();
         String stdTableDefault        = ph.getStdTable();
         int standard_set_inDefault    = ph.getStandard_set_in();
+        boolean ignoreRasicamDefault  = ph.getIgnoreRasicam();
+        String rasicamDECamTableDefault = ph.getRasicamDECamTable();
+        String rasicamDECamSourceDefault = ph.getRasicamDECamSource();
         int verboseDefault            = ph.getVerbose();
 
         // Instantiate an instance of the ColorTermCoeffs class...
@@ -310,11 +322,15 @@ public class PhotomEqSolverRunYear1 {
         CmdLineParser.Option kdefaultOption        = parser.addDoubleOption("kdefault");
         CmdLineParser.Option kdefaultErrOption     = parser.addDoubleOption("kdefaultErr");
     	CmdLineParser.Option updateDBOption        = parser.addBooleanOption("updateDB");
+    	CmdLineParser.Option updateDB_rms_limitOption = parser.addDoubleOption("updateDB_rms_limit");
         CmdLineParser.Option useOnlyCurrentObjectsOption = parser.addBooleanOption("useOnlyCurrentObjects");
         CmdLineParser.Option skipQAPlotsOption     = parser.addBooleanOption("skipQAPlots");
     	CmdLineParser.Option verboseOption         = parser.addIntegerOption('v', "verbose");
         CmdLineParser.Option stdTableOption        = parser.addStringOption("stdTable");
         CmdLineParser.Option standard_set_inOption = parser.addIntegerOption("standard_set_in");
+    	CmdLineParser.Option ignoreRasicamOption   = parser.addBooleanOption("ignoreRasicam");
+        CmdLineParser.Option rasicamDECamTableOption = parser.addStringOption("rasicamDECamTable");
+        CmdLineParser.Option rasicamDECamSourceOption = parser.addStringOption("rasicamDECamSource");
         CmdLineParser.Option helpOption            = parser.addBooleanOption('h', "help");
     	CmdLineParser.Option paramFileOption       = parser.addStringOption("paramFile");
 
@@ -435,6 +451,8 @@ public class PhotomEqSolverRunYear1 {
      						kdefaultErrDefault = Double.parseDouble(field2);
      					} else if (field1.equals("updateDB")) {
      						updateDBDefault = Boolean.parseBoolean(field2);
+     					} else if (field1.equals("updateDB_rms_limit")) {
+     						updateDB_rms_limitDefault = Double.parseDouble(field2);
      					} else if (field1.equals("useOnlyCurrentObjects")) {
      						useOnlyCurrentObjectsDefault = Boolean.parseBoolean(field2);
      					} else if (field1.equals("skipQAPlots")) {
@@ -445,6 +463,12 @@ public class PhotomEqSolverRunYear1 {
      						stdTableDefault = field2;
      					} else if (field1.equals("standard_set_in")) {
      						standard_set_inDefault = Integer.parseInt(field2);
+     					} else if (field1.equals("ignoreRasicam")) {
+     						ignoreRasicamDefault = Boolean.parseBoolean(field2);
+    					} else if (field1.equals("rasicamDECamTable")) {
+     						rasicamDECamTableDefault = field2;
+     					} else if (field1.equals("rasicamDECamSource")) {
+     						rasicamDECamSourceDefault = field2;
      					} else if (field1.equals("bccdidArray")) {
      						
      						if (ignoreParamFileBTermInfo == false) {
@@ -573,10 +597,14 @@ public class PhotomEqSolverRunYear1 {
     	double kdefault = ((Double)parser.getOptionValue(kdefaultOption, new Double(kdefaultDefault))).doubleValue();
     	double kdefaultErr = ((Double)parser.getOptionValue(kdefaultErrOption, new Double(kdefaultErrDefault))).doubleValue();
     	Boolean updateDB = (Boolean)parser.getOptionValue(updateDBOption, updateDBDefault);
+    	double updateDB_rms_limit = ((Double)parser.getOptionValue(updateDB_rms_limitOption, new Double(updateDB_rms_limitDefault))).doubleValue();
     	Boolean useOnlyCurrentObjects = (Boolean)parser.getOptionValue(useOnlyCurrentObjectsOption, useOnlyCurrentObjectsDefault);
     	Boolean skipQAPlots = (Boolean)parser.getOptionValue(skipQAPlotsOption, skipQAPlotsDefault);
     	String stdTable = (String)parser.getOptionValue(stdTableOption, stdTableDefault);
     	int standard_set_in = ((Integer)parser.getOptionValue(standard_set_inOption, new Integer(standard_set_inDefault))).intValue();
+    	Boolean ignoreRasicam = (Boolean)parser.getOptionValue(ignoreRasicamOption, ignoreRasicamDefault);
+    	String rasicamDECamTable = (String)parser.getOptionValue(rasicamDECamTableOption, rasicamDECamTableDefault);
+    	String rasicamDECamSource = (String)parser.getOptionValue(rasicamDECamSourceOption, rasicamDECamSourceDefault);
     	int verbose = ((Integer)parser.getOptionValue(verboseOption, new Integer(verboseDefault))).intValue();
     	
     	
@@ -730,6 +758,9 @@ public class PhotomEqSolverRunYear1 {
     	ph.setUpdateDB(updateDB);
     	if (localVerbose > 0) {System.out.println("updateDB="+ph.getUpdateDB());}
     	
+    	ph.setUpdateDB_rms_limit(updateDB_rms_limit);
+    	if (localVerbose > 0) {System.out.println("updateDB_rms_limit="+ph.getUpdateDB_rms_limit());}
+    	
     	ph.setUseOnlyCurrentObjects(useOnlyCurrentObjects);
     	if (localVerbose > 0) {System.out.println("useOnlyCurrentObjects="+ph.getUseOnlyCurrentObjects());}
     	
@@ -741,6 +772,15 @@ public class PhotomEqSolverRunYear1 {
     	
     	ph.setStandard_set_in(standard_set_in);   
     	if (localVerbose > 0) {System.out.println("standard_set_in="+ph.getStandard_set_in());}
+    	
+    	ph.setIgnoreRasicam(ignoreRasicam);
+    	if (localVerbose > 0) {System.out.println("ignoreRasicam="+ph.getIgnoreRasicam());}
+    	
+    	ph.setRasicamDECamTable(rasicamDECamTable); 
+    	if (localVerbose > 0) {System.out.println("rasicamDECamTable="+ph.getRasicamDECamTable());}
+    	
+    	ph.setRasicamDECamSource(rasicamDECamSource); 
+    	if (localVerbose > 0) {System.out.println("rasicamDECamSource="+ph.getRasicamDECamSource());}
     	
     	ph.setVerbose(verbose);   
     	if (localVerbose > 0) {System.out.println("verbose="+ph.getVerbose());}
