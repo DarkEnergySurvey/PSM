@@ -53,7 +53,7 @@ niterations     3            #number of iterations for sigma-clipping outlier re
 nsigma          2.5          #number of sigma for sigma-clipping outlier rejection
 
 ksolve          false        #solve for k? (true/false)
-default          0.05        #only used if ksolve=false
+kdefault         0.05        #only used if ksolve=false
 kdefaultErr      0.02        #only used if ksolve=false
 
 bsolve          false        #solve for b? (true/false)
