@@ -71,8 +71,10 @@ public class PhotomEqSolverRunYear1 {
         boolean ignoreRasicamDefault  = ph.getIgnoreRasicam();
         String rasicamDECamTableDefault = ph.getRasicamDECamTable();
         String rasicamDECamSourceDefault = ph.getRasicamDECamSource();
+        boolean ignoreDomeOcclusionDefault = ph.getIgnoreDomeOcclusion();
+        double domeOcclusion_limitDefault = ph.getDomeOcclusion_limit();
         int verboseDefault            = ph.getVerbose();
-        
+                
         // Create output message...
         String message = 
        			"\nUsage:  java gov.fnal.eag.dtucker.desPhotoStds.PhotomEqSolverRunYear1 [OPTIONS] \n\n" +
@@ -121,6 +123,8 @@ public class PhotomEqSolverRunYear1 {
 				"   --ignoreRasicam               include this flag if the RASICAM photometricity indicators are to be ignored \n" +
 				"   --rasicamDECamTable VALUE     database RASICAM_DECam table to use   [default: " + rasicamDECamTableDefault + "] \n" +
 				"   --rasicamDECamSource VALUE    database RASICAM_DECam source to use  [default: " + rasicamDECamSourceDefault + "] \n" +
+				"   --ignoreDomeOcclusion         include this flag if the dome occlusion test is to be ignored \n" +
+				"   --domeOcclusion_limit VALUE   CCD zp offset in mag above which an exposure will be flagged as a likely dome occlusion   [default: " + domeOcclusion_limitDefault + "] \n" +
 				"   -h, --help                    this message \n\n" + 
 				"   Example 1: \n" +
 				"      java gov.fnal.eag.dtucker.desPhotoStds.PhotomEqSolverRunYear1 --url jdbc:oracle:thin:@charon.ncsa.uiuc.edu:1521: --dbName des  -u myUserName -p myPassword -P BCS -n 20061223 -f g --ccdid 0 --magLo 15.0 --magHi 18.0 --niter 3 --nsigma 2.5 --imageType remap --imageNameFilter % --run 20080324000000_20061223 --psmVersion v_Year1 -v 2 --bsolve --ksolve \n\n" +
@@ -263,6 +267,8 @@ public class PhotomEqSolverRunYear1 {
         boolean ignoreRasicamDefault  = ph.getIgnoreRasicam();
         String rasicamDECamTableDefault = ph.getRasicamDECamTable();
         String rasicamDECamSourceDefault = ph.getRasicamDECamSource();
+        boolean ignoreDomeOcclusionDefault = ph.getIgnoreDomeOcclusion();
+        double domeOcclusion_limitDefault = ph.getDomeOcclusion_limit();
         int verboseDefault            = ph.getVerbose();
 
         // Instantiate an instance of the ColorTermCoeffs class...
@@ -331,6 +337,8 @@ public class PhotomEqSolverRunYear1 {
     	CmdLineParser.Option ignoreRasicamOption   = parser.addBooleanOption("ignoreRasicam");
         CmdLineParser.Option rasicamDECamTableOption = parser.addStringOption("rasicamDECamTable");
         CmdLineParser.Option rasicamDECamSourceOption = parser.addStringOption("rasicamDECamSource");
+    	CmdLineParser.Option ignoreDomeOcclusionOption = parser.addBooleanOption("ignoreDomeOcclusion");
+    	CmdLineParser.Option domeOcclusion_limitOption = parser.addDoubleOption("domeOcclusion_limit");
         CmdLineParser.Option helpOption            = parser.addBooleanOption('h', "help");
     	CmdLineParser.Option paramFileOption       = parser.addStringOption("paramFile");
 
@@ -469,6 +477,10 @@ public class PhotomEqSolverRunYear1 {
      						rasicamDECamTableDefault = field2;
      					} else if (field1.equals("rasicamDECamSource")) {
      						rasicamDECamSourceDefault = field2;
+     					} else if (field1.equals("ignoreDomeOcclusion")) {
+     						ignoreDomeOcclusionDefault = Boolean.parseBoolean(field2);
+     					} else if (field1.equals("domeOcclusion_limit")) {
+     						domeOcclusion_limitDefault = Double.parseDouble(field2);
      					} else if (field1.equals("bccdidArray")) {
      						
      						if (ignoreParamFileBTermInfo == false) {
@@ -605,6 +617,8 @@ public class PhotomEqSolverRunYear1 {
     	Boolean ignoreRasicam = (Boolean)parser.getOptionValue(ignoreRasicamOption, ignoreRasicamDefault);
     	String rasicamDECamTable = (String)parser.getOptionValue(rasicamDECamTableOption, rasicamDECamTableDefault);
     	String rasicamDECamSource = (String)parser.getOptionValue(rasicamDECamSourceOption, rasicamDECamSourceDefault);
+    	Boolean ignoreDomeOcclusion = (Boolean)parser.getOptionValue(ignoreDomeOcclusionOption, ignoreDomeOcclusionDefault);
+    	double domeOcclusion_limit = ((Double)parser.getOptionValue(domeOcclusion_limitOption, new Double(domeOcclusion_limitDefault))).doubleValue();
     	int verbose = ((Integer)parser.getOptionValue(verboseOption, new Integer(verboseDefault))).intValue();
     	
     	
@@ -782,7 +796,13 @@ public class PhotomEqSolverRunYear1 {
     	ph.setRasicamDECamSource(rasicamDECamSource); 
     	if (localVerbose > 0) {System.out.println("rasicamDECamSource="+ph.getRasicamDECamSource());}
     	
-    	ph.setVerbose(verbose);   
+    	ph.setIgnoreDomeOcclusion(ignoreDomeOcclusion);
+    	if (localVerbose > 0) {System.out.println("ignoreDomeOcclusion="+ph.getIgnoreDomeOcclusion());}
+    	
+    	ph.setDomeOcclusion_limit(domeOcclusion_limit);
+    	if (localVerbose > 0) {System.out.println("domeOcclusion_limit="+ph.getDomeOcclusion_limit());}
+    	
+     	ph.setVerbose(verbose);   
     	if (localVerbose > 0) {System.out.println("verbose="+ph.getVerbose());}
     	
     	
