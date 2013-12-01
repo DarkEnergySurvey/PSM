@@ -1,3 +1,72 @@
+PSM v_Year1 (29 Nov 2013)
+----------------------------------------
+
+1. Added check for loss of all stars on a CCD; if so, exit PSM gracefully.
+
+
+2. Added use of RASICAM_DECAM table.  This feature is "on" by default. 
+   New command line options associated with this feature are the following:
+   --ignoreRasicam              (ignore RASICAM info) 
+   --rasicamDECamTable VALUE    (RASICAM table to use; current default: GRUENDL.rasicam_decam
+   --rasicamDECamSource VALUE   (Source from RASICAM table to use; current default:  HEADER)
+
+
+3. Made updateDB conditional on a threshold value for solution's rms. 
+   Current default is 0.05mag rms. 
+   New command line options associated with this feature are the following:
+   --updateDB_rms_limit VALUE   (Threshold value; current default is 0.05)
+
+
+4. Added dome occlusion tests.  This feature is "on" by default.
+   New command line options associated with this feature are the following:
+   --ignoreDomeOcclusion        (skip the dome occlusion test)
+   --domeOcclusion_limit VALUE  (above this value, an exposure is considered occluded;
+                                 current default is 0.04 mag)
+   There are currently two dome occlusion tests:
+
+   a. The first works under the assumption that, under photometric and non-occluded
+      conditions, all CCDs in a given exposure have basically the same photometric
+      zeropoint (to a couple percent).  (This is only really valid with the new
+      pupil ghost and star flat corrections; so "--ignoreDomeOcclusion" should be
+      used if the pupil ghost and star flat are incorrect or are not applied.)
+      An initial zeropoint is calculated for each CCD in an exposure and compared
+      with the median zeropoint of all the CCDs on the given exposure (some "problem"
+      CCDs are ignored in this analysis).  If any of the CCDs has a zeropoint offset
+      greater than some threshold (domeOcclusion_limit), the whole exposure is
+      considered to have a possible dome occlusion and is excluded from the fit.
+      This test is applicable to more than just dome occlusions.  Dome occlusions
+      tend to create a zeropoint "tilt" across the focal plane; this test is 
+      more conservative in that it tosses out any exposure that has more at 
+      least one CCD with an out-of-tolerance relative zeropoint.
+
+   b. The second removes exposures that, even though all the CCDs have photometric
+      zeropoint consistent with each other, have an overall transparency offset
+      from the other exposures.  Airmass effects are removed by use of the 
+      default first-order extinction coefficient, k, for the given filter.
+      Since k may vary over a range of values, though, this test is more lenient,
+      only tossing out expsures with 2x the domeOcclusion_limit.
+
+
+5. Updated the sigma-clipping algorithm.
+   Now, not only are stars sigma clipped, but also whole exposures are sigma clipped,
+   during the iterative fit.  (Generally, this generally has no effect on the solution.
+   Very rarely does a whole exposure get sigma-clipped, especially if it has passed
+   through the dome occlusion tests.
+
+
+6. Added this sanity check:  if there is only one exposure (so only one airmass),
+   the first-order extinction coefficient ("k") is fixed to its default value
+   for that filter. 
+
+
+7. Updated psmParam_des_?.par files:
+   a. Added updateDB, updateDB_rms_limit, ignoreRasicam, rasicamDECamTable, 
+      rasicamDECamSource, magType parameters.
+   b. Updated values for nite, project, imageType, run, url, dbName, 
+      standard_set_in, expTimeLo, expTimeLo keywords.
+
+
+
 PSM v_Year1 (4 Dec 2012)
 ------------------------
 
