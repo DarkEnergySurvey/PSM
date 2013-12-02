@@ -85,6 +85,9 @@ public class PhotomEqSolverYear1 {
 	private boolean ignoreRasicam = false;
 	private String rasicamDECamTable = "GRUENDL.rasicam_decam";
 	private String rasicamDECamSource = "HEADER";
+	private boolean ignoreDomeOcclusion = false; //set to true if updating fitTable directly
+	private double domeOcclusion_limit = 0.04;  
+	
 
 
 	// Instance variables dealing with this execution of the Photometric 
@@ -335,7 +338,6 @@ public class PhotomEqSolverYear1 {
 			
 		}
 		
-		//System.exit(5);
 		
 		// Create array list of image id's to be excluded from the fit...
 		ArrayList imageidExcludeArrayList = new ArrayList();
@@ -692,200 +694,394 @@ public class PhotomEqSolverYear1 {
 			System.out.println("");
 		}		
 		
+		int nexpOrig = nexp;
 		
 		//Dome Occlusion Test (15 Nov 2013).
 		//Currently, the dome occlusion test has been tailored for use with DECam data
-		//With the many new project names, it is easier to assume all but the various BCS projects use the DECam focal plane.
-		//if (!project.equalsIgnoreCase("BCS") && !project.equalsIgnoreCase("SCS") && !project.equalsIgnoreCase("SPT") && !project.equalsIgnoreCase("CPT")) {
+		//Use --ignoreDomeOcclusion command-line option if data are not from DECam.
 
-		if (verbose > 0) {
-			System.out.println("Checking and removing dome-occluded exposures.");
-			System.out.println("");
-		}
+		if (!ignoreDomeOcclusion) {
+			
+			//
+			//First identify and remove exposures showing variable CCD-to-CCD zeropoints
+			//
+			
+			if (verbose > 0) {
+				System.out.println("Checking and removing dome-occluded exposures.");
+				System.out.println("");
+			}
+			
+			for (iexp = 0; iexp < nexp; iexp++) {
 
-		for (iexp = 0; iexp < nexp; iexp++) {
+				ArrayList zpArrayList = new ArrayList();
+				ArrayList zpCcdIdArrayList = new ArrayList();
 
-			ArrayList zpArrayList = new ArrayList();
-			ArrayList zpCcdIdArrayList = new ArrayList();
+				for (iccd = 0; iccd < nccd; iccd++) {
 
-			for (iccd = 0; iccd < nccd; iccd++) {
+					// Ignore problem CCDs...
+					if (	ccdIdArray[iccd] == 61 || 
+							ccdIdArray[iccd] == 31 || 
+							ccdIdArray[iccd] == 33 || 
+							ccdIdArray[iccd] == 44 || 
+							ccdIdArray[iccd] == 15 ) {continue;}
 
-				// Ignore problem CCDs...
-				if (	ccdIdArray[iccd] == 61 || 
-						ccdIdArray[iccd] == 31 || 
-						ccdIdArray[iccd] == 33 || 
-						ccdIdArray[iccd] == 44 || 
-						ccdIdArray[iccd] == 15 ) {continue;}
+					ArrayList deltamagArrayList = new ArrayList();
 
-				ArrayList deltamagArrayList = new ArrayList();
+					int size = mStdStarList[iccd].size();
 
-				int size = mStdStarList[iccd].size();
+					if (size > 0) {
 
-				if (size > 0) {
+						for (int j = 0; j < size; j++) {
 
-					for (int j = 0; j < size; j++) {
+							MatchedStdStarYear1 mStdStar = (MatchedStdStarYear1) mStdStarList[iccd].get(j);
 
-						MatchedStdStarYear1 mStdStar = (MatchedStdStarYear1) mStdStarList[iccd].get(j);
+							double deltamag = mStdStar.getDeltamag();
+							double airmass  = mStdStar.getAirmass();
+							deltamag = deltamag - kdefault*airmass;
+							long exposure_id = mStdStar.getExposure_id();
+							if (expIdArray[iexp] == exposure_id) {
+								deltamagArrayList.add(new Double(deltamag));
+							}
 
-						double deltamag = mStdStar.getDeltamag();
-						long exposure_id = mStdStar.getExposure_id();
-						if (expIdArray[iexp] == exposure_id) {
-							deltamagArrayList.add(new Double(deltamag));
 						}
 
-					}
-
-				}
-
-				System.out.println(iexp + "\t" + expIdArray[iexp]+ "\t" + iccd + "\t" + ccdIdArray[iccd] + "\t" + deltamagArrayList.size());
-
-				// Only consider CCDs with at least 5 stars on them...
-				if (deltamagArrayList.size() >= 5) {
-
-					//Easier to sort an array (without thinking hard) rather than an ArrayList...
-					double deltamagList[] = new double[deltamagArrayList.size()];
-					for (int j = 0; j < deltamagArrayList.size(); j++) {
-						deltamagList[j] = (Double) deltamagArrayList.get(j);
-						System.out.print(deltamagList[j] + " ");
-					}
-					System.out.println("");
-					Arrays.sort(deltamagList);
-
-					for (int j = 0; j < deltamagArrayList.size(); j++) {
-						System.out.print(deltamagList[j] + " ");
-					}
-					System.out.println("");
-
-					//Find median...
-					int middle = deltamagList.length/2;
-					double median;
-					if (deltamagList.length%2 == 1) {
-						median = deltamagList[middle];
-					} else {
-						median = (deltamagList[middle-1] + deltamagList[middle]) / 2.0;
 					}
 
 					if (verbose > 1) {
+						System.out.println(iexp + "\t" + expIdArray[iexp]+ "\t" + iccd + "\t" + ccdIdArray[iccd] + "\t" + deltamagArrayList.size());
+					}
+						
+					// Only consider CCDs with at least 5 stars on them...
+					if (deltamagArrayList.size() >= 5) {
+
+						//Easier to sort an array (without thinking hard) rather than an ArrayList...
+						double deltamagList[] = new double[deltamagArrayList.size()];
+						for (int j = 0; j < deltamagArrayList.size(); j++) {
+							deltamagList[j] = (Double) deltamagArrayList.get(j);
+							if (verbose > 1) {
+								System.out.print(deltamagList[j] + " ");
+							}
+						}
+						if (verbose > 1) {
+							System.out.println("");
+						}
+
+						Arrays.sort(deltamagList);
+
+						if (verbose > 1) {
+							for (int j = 0; j < deltamagArrayList.size(); j++) {
+								System.out.print(deltamagList[j] + " ");
+							}
+							System.out.println("");
+						}
+							
+						//Find median...
+						int middle = deltamagList.length/2;
+						double median;
+						if (deltamagList.length%2 == 1) {
+							median = deltamagList[middle];
+						} else {
+							median = (deltamagList[middle-1] + deltamagList[middle]) / 2.0;
+						}
+
 						for (int j = 0; j < deltamagArrayList.size(); j++) {
 							deltamagList[j] = deltamagList[j] - median;
-							System.out.print(deltamagList[j] + " ");
-						}	
-						System.out.println("");
+							if (verbose > 1) {
+								System.out.print(deltamagList[j] + " ");
+							}	
+						}
+						if (verbose > 1) {
+							System.out.println("");
+						}
+
+						// For the purposes of this sanity check, the median is the zeropoint for this ccd...
+						zpArrayList.add(new Double(median));
+						zpCcdIdArrayList.add(new Integer(ccdIdArray[iccd]));
+						if (verbose > 1) {
+							System.out.println("Median(" + ccdIdArray[iccd] + ") = "  + median);
+						}
+
 					}
 
-					// For the purposes of this sanity check, the median is the zeropoint for this ccd...
-					System.out.println("Median(" + ccdIdArray[iccd] + ") = "  + median);
-					zpArrayList.add(new Double(median));
-					zpCcdIdArrayList.add(new Integer(ccdIdArray[iccd]));
-
 				}
 
-			}
-
-			//
-			// Check for pCcdIdArrayList.size() > 50...
-			//
-			
-			//Find median of zpList.  Don't forget to sort!
-			int zpSize = zpArrayList.size();
-			int zpCcdIdList[] = new int[zpSize];
-			double zpList[] = new double[zpSize];
-			double zpSortedList[] = new double[zpSize];
-			for (int j = 0; j < zpSize; j++) {
-				zpCcdIdList[j] = (Integer) zpCcdIdArrayList.get(j);
-				zpList[j] = (Double) zpArrayList.get(j);
-				zpSortedList[j] = zpList[j];
-			}
-			Arrays.sort(zpSortedList);
-			int middle = zpSortedList.length/2;
-			double median;
-			if (zpSortedList.length == 0) {
-				median = -9999.;
-			} else if (zpSortedList.length%2 == 1) {
-				median = zpSortedList[middle];
-			} else {
-				median = (zpSortedList[middle-1] + zpSortedList[middle]) / 2.0;
-			}
-			System.out.println("Median(zpSortedList) = " + median + " size(zpSortedList) = " + zpSortedList.length);
-			
-			boolean domeOcclusion = false;
-			for (int j = 0; j < zpArrayList.size(); j++) {
-				zpList[j] = zpList[j] - median;
-				if (Math.abs(zpList[j]) > 0.04) {
-					System.out.println(expIdArray[iexp]+ "\t" + zpCcdIdList[j] + "\t" + zpList[j] + "\t ***********");
-					domeOcclusion = true;
+				//Find median of zpList.  Don't forget to sort!
+				int zpSize = zpArrayList.size();
+				int zpCcdIdList[] = new int[zpSize];
+				double zpList[] = new double[zpSize];
+				double zpSortedList[] = new double[zpSize];
+				for (int j = 0; j < zpSize; j++) {
+					zpCcdIdList[j] = (Integer) zpCcdIdArrayList.get(j);
+					zpList[j] = (Double) zpArrayList.get(j);
+					zpSortedList[j] = zpList[j];
+				}
+				Arrays.sort(zpSortedList);
+				int middle = zpSortedList.length/2;
+				double median;
+				if (zpSortedList.length == 0) {
+					median = -9999.;
+				} else if (zpSortedList.length%2 == 1) {
+					median = zpSortedList[middle];
 				} else {
-					System.out.println(expIdArray[iexp]+ "\t" + zpCcdIdList[j] + "\t" + zpList[j]);
+					median = (zpSortedList[middle-1] + zpSortedList[middle]) / 2.0;
 				}
-			}
-
-			//for (iccd = 0; iccd < nccd; iccd++) {
-			//	zpList[iccd] = zpList[iccd] - median;
-			//	System.out.println(expIdArray[iexp]+ "\t" + ccdIdArray[iccd] + "\t" + zpList[iccd]);
-			//}
-
-			// Cull stars on this (likely) dome-occluded exposure...
-			//domeOcclusion = false;
-			if (domeOcclusion) {
-				
-				expIdArrayList.remove(new Long(expIdArray[iexp]));
-				
 				if (verbose > 1) {
-					System.out.println("        (removing outliers)");
+					System.out.println("Median(zpSortedList) = " + median + " size(zpSortedList) = " + zpSortedList.length);
 				}
-				for (iccd = 0; iccd < nccd; iccd++) {
-					int size = mStdStarList[iccd].size();
-					if (size > 0) {
-						for (int j = 0; j < size; j++) {
-							int jj = (size - 1) - j;
-							MatchedStdStarYear1 mStdStar = (MatchedStdStarYear1) mStdStarList[iccd].get(jj);
-							long exposure_id = mStdStar.getExposure_id();
-							if (expIdArray[iexp] == exposure_id) {
-								if (verbose > 1) {
-									long object_id = mStdStar.getObject_id();
-									System.out
-									.println("        Removing object (object_id: " 
-														 + object_id +  
-														 ") on CCD "
-														 + ccdIdArray[iccd]
-														 + " in likely occluded exposure "
-											             + exposure_id + ")");
-											             
+					
+				boolean domeOcclusion = false;
+				for (int j = 0; j < zpArrayList.size(); j++) {
+					zpList[j] = zpList[j] - median;
+					if (Math.abs(zpList[j]) > domeOcclusion_limit) {
+						domeOcclusion = true;
+						if (verbose > 1) {
+							System.out.println(expIdArray[iexp]+ "\t" + zpCcdIdList[j] + "\t" + zpList[j] + "\t ***********");
+						}
+					} else {
+						if (verbose > 1) {
+							System.out.println(expIdArray[iexp]+ "\t" + zpCcdIdList[j] + "\t" + zpList[j]);
+						}
+					}
+				}
+
+				// Cull stars on this (likely) dome-occluded exposure...
+				if (domeOcclusion) {
+					
+					// Might be a problem here.  Check iexp, nexp above.
+					expIdArrayList.remove(new Long(expIdArray[iexp]));
+
+					if (verbose > 1) {
+						System.out.println("Removing all objects from likely occluded exposure " + expIdArray[iexp] + "...");
+					}
+					for (iccd = 0; iccd < nccd; iccd++) {
+						int size = mStdStarList[iccd].size();
+						if (size > 0) {
+							for (int j = 0; j < size; j++) {
+								int jj = (size - 1) - j;
+								MatchedStdStarYear1 mStdStar = (MatchedStdStarYear1) mStdStarList[iccd].get(jj);
+								long exposure_id = mStdStar.getExposure_id();
+								if (expIdArray[iexp] == exposure_id) {
+									if (verbose > 2) {
+										long object_id = mStdStar.getObject_id();
+										System.out
+										.println("        Removing object (object_id: " 
+												+ object_id +  
+												") on CCD "
+												+ ccdIdArray[iccd]
+												             + " in likely occluded exposure "
+												             + exposure_id + ")");
+
+									}
+									mStdStarList[iccd].remove(jj);
 								}
-								mStdStarList[iccd].remove(jj);
 							}
 						}
 					}
-					//if (verbose > 0) {
-						//System.out.println("ccd: " + ccdIdArray[iccd] + "\t" + "old size: " + size + "\t new size: " + mStdStarList[iccd].size());
-					//}
+
+					if (verbose > 1) {
+						System.out.println("");
+					}
+
 				}
 
-				System.out.println("");
-				
 			}
 			
-		}
+			
+			
+			//////////////////////////////////////////////
+			
+			// Now remove exposures with noticeable offsets from the other exposures,
+			// taking into account the different airmasses by means of the default
+			// first-order extinction coefficient, kdefault.
+			// Ignore exposures already removed above...
+			
+			// A lot of the following is a copy of the above.
+			// Should clean it up... when there is time...
+			
+			//Reset expIdArray...
+			nexp = expIdArrayList.size();
+			for (iexp = 0; iexp < nexp; iexp++) {
+				expIdArray[iexp] = (Long) expIdArrayList.get(iexp);
+			}
 
-		if (verbose > 1) {
-			System.out.println("Number of exposures left after dome occlusion sanity check:  " + expIdArrayList.size() + " out of " + nexp + " originally.");
-		}
+			//Instantiate some new array list variables...
+			ArrayList allExpOffsetArrayList = new ArrayList();
+			ArrayList[] expOffsetArrayList = new ArrayList[nexp];
+			for (iexp = 0; iexp < nexp; iexp++) {
+				expOffsetArrayList[iexp] = new ArrayList();
+			}
+			
+			// Create an array flagging bad exposures...
+			int badExpFlagArray[] = new int[nexp];
+			// Initialize badExpFlagArray...
+			for (iexp = 0; iexp < nexp; iexp++) {
+				badExpFlagArray[iexp] = 0;
+			}
+
+			// Loop over all remaining exposures...
+			for (iexp = 0; iexp < nexp; iexp++) {
+
+				for (iccd = 0; iccd < nccd; iccd++) {
+
+					// Ignore problem CCDs...
+					if (	ccdIdArray[iccd] == 61 || 
+							ccdIdArray[iccd] == 31 || 
+							ccdIdArray[iccd] == 33 || 
+							ccdIdArray[iccd] == 44 || 
+							ccdIdArray[iccd] == 15 ) {continue;}
+
+					int size = mStdStarList[iccd].size();
+
+					if (size > 0) {
+
+						for (int j = 0; j < size; j++) {
+
+							MatchedStdStarYear1 mStdStar = (MatchedStdStarYear1) mStdStarList[iccd].get(j);
+
+							double deltamag = mStdStar.getDeltamag();
+							double airmass  = mStdStar.getAirmass();
+							deltamag = deltamag - kdefault*airmass;
+							long exposure_id = mStdStar.getExposure_id();
+							if (expIdArray[iexp] == exposure_id) {
+								expOffsetArrayList[iexp].add(new Double(deltamag));
+								allExpOffsetArrayList.add(new Double(deltamag));
+							}
+
+						}
+
+					}
+
+				}
+			
+			}
+
+			//Find median of allExpOffsetArrayList  Don't forget to sort!
+			int allExpOffsetSize = allExpOffsetArrayList.size();
+			double allExpOffsetList[] = new double[allExpOffsetSize];
+			double allExpOffsetSortedList[] = new double[allExpOffsetSize];
+			for (int j = 0; j < allExpOffsetSize; j++) {
+				allExpOffsetList[j] = (Double) allExpOffsetArrayList.get(j);
+				allExpOffsetSortedList[j] = allExpOffsetList[j];
+			}
+			Arrays.sort(allExpOffsetSortedList);
+			int middle = allExpOffsetSortedList.length/2;
+			double median;
+			if (allExpOffsetSortedList.length == 0) {
+				median = -9999.;
+			} else if (allExpOffsetSortedList.length%2 == 1) {
+				median = allExpOffsetSortedList[middle];
+			} else {
+				median = (allExpOffsetSortedList[middle-1] + allExpOffsetSortedList[middle]) / 2.0;
+			}
+			double allExpOffsetMedian = median; 
+			if (verbose > 1) {
+				System.out.println("Median(allExpOffsetSortedList) = " + allExpOffsetMedian + " size(allExpOffsetSortedList) = " + allExpOffsetSortedList.length);
+			}
+			
+			//Find median of each expOffsetArrayList[iexp], and subtract off allExpOffsetMedian
+			double expMedianOffsetList[] = new double[nexp];
+			for (iexp = 0; iexp < nexp; iexp++) {
+				long exposureid = expIdArray[iexp];
+				int expOffsetSize = expOffsetArrayList[iexp].size();
+				double expOffsetList[] = new double[expOffsetSize];
+				double expOffsetSortedList[] = new double[expOffsetSize];
+				for (int j = 0; j < expOffsetSize; j++) {
+					expOffsetList[j] = (Double) expOffsetArrayList[iexp].get(j);
+					expOffsetSortedList[j] = expOffsetList[j];
+				}
+				Arrays.sort(expOffsetSortedList);
+				middle = expOffsetSortedList.length/2;
+				if (expOffsetSortedList.length == 0) {
+					median = -9999.;
+				} else if (expOffsetSortedList.length%2 == 1) {
+					median = expOffsetSortedList[middle];
+				} else {
+					median = (expOffsetSortedList[middle-1] + expOffsetSortedList[middle]) / 2.0;
+					median = expOffsetSortedList[middle];
+				}
+
+				expMedianOffsetList[iexp] = median;
+				expMedianOffsetList[iexp] = expMedianOffsetList[iexp] - allExpOffsetMedian;
+				
+				boolean domeOcclusion = false;
+				//The multiplicative factor of 1.5 is pseudo-empirically derived.
+				//Should try to do better once we have more info.
+				if (Math.abs(expMedianOffsetList[iexp]) > 2.0*domeOcclusion_limit) {
+					domeOcclusion = true;
+					if (verbose > 1) {
+						System.out.println(iexp + "\t" + exposureid + "\t" + median + "\t" + allExpOffsetMedian + "\t" + expMedianOffsetList[iexp] + "\t ***********");
+					}
+				} else {
+					if (verbose > 1) {
+						System.out.println(iexp + "\t" + exposureid + "\t" + median + "\t" + allExpOffsetMedian + "\t" + expMedianOffsetList[iexp]);
+					}
+				}
+				
+				// Cull stars on this (likely) dome-occluded exposure...
+				if (domeOcclusion) {
+					
+					// Might be a problem here.  Check iexp, nexp above.
+					expIdArrayList.remove(new Long(expIdArray[iexp]));
+
+					if (verbose > 1) {
+						System.out.println("Removing all objects from likely occluded exposure " + expIdArray[iexp] + "...");
+					}
+					for (iccd = 0; iccd < nccd; iccd++) {
+						int size = mStdStarList[iccd].size();
+						if (size > 0) {
+							for (int j = 0; j < size; j++) {
+								int jj = (size - 1) - j;
+								MatchedStdStarYear1 mStdStar = (MatchedStdStarYear1) mStdStarList[iccd].get(jj);
+								long exposure_id = mStdStar.getExposure_id();
+								if (expIdArray[iexp] == exposure_id) {
+									if (verbose > 2) {
+										long object_id = mStdStar.getObject_id();
+										System.out
+										.println("        Removing object (object_id: " 
+												+ object_id +  
+												") on CCD "
+												+ ccdIdArray[iccd]
+												             + " in likely occluded exposure "
+												             + exposure_id + ")");
+
+									}
+									mStdStarList[iccd].remove(jj);
+								}
+							}
+						}
+					}
+
+					if (verbose > 2) {
+						System.out.println("");
+					}
+
+				}
+				
+			}
+			//////////////////////////////////////////////			
+			
+			if (verbose > 1) {
+				System.out.println("Number of exposures left after dome occlusion sanity check:  " + expIdArrayList.size() + " out of the original " + nexpOrig + ".");
+			}
+
+		}	
+
 		
-		// If we have no exposures left, exit with warning...
+		
+		// If we have no exposures for the fit, exit with warning...
 		if (expIdArrayList.size() <= 0) {
-			System.out.println("STATUS5BEG ** No exposures left after dome occlusion sanity check...  Exiting now! ** STATUS5END");
+			System.out.println("STATUS5BEG ** No exposures for the fit...  Exiting now! ** STATUS5END");
 			System.exit(3);
 		} 
-		// If we have only one exposure left, we must use the default k even if ksolve was set true...
+		// If we have only one exposure for the fit, we must use the default k even if ksolve was set true...
 		if (ksolve && expIdArrayList.size() == 1) {
 			if (verbose > 0) {
-				System.out.println("Only one exposure left ater dome occlusion sanity check... using default k for the solution...");
+				System.out.println("Only one exposure for the fit... using default k for the solution...");
 				System.out.println("");
 			}
 			ksolve = false;
 		}
-			
-			
+	
 		
 		if (verbose > 0) {
 			System.out.println("Fitting data points.");
@@ -1163,6 +1359,15 @@ public class PhotomEqSolverYear1 {
 			}
 
 			// Calculate rms and reduced chi2 of solution...
+			// Also calculate median residual for each exposure...
+			nexp = expIdArrayList.size();
+			for (iexp = 0; iexp < nexp; iexp++) {
+				expIdArray[iexp] = (Long) expIdArrayList.get(iexp);
+			}
+			ArrayList[] expResArrayList = new ArrayList[nexp];
+			for (iexp = 0; iexp < nexp; iexp++) {
+				expResArrayList[iexp] = new ArrayList();
+			}
 			rms = -1;
 			chi2 = -1;
 			photometricFlag = -1;
@@ -1175,6 +1380,8 @@ public class PhotomEqSolverYear1 {
 					ntot = ntot + size;
 					for (int j = 0; j < size; j++) {
 						MatchedStdStarYear1 mStdStar = (MatchedStdStarYear1) mStdStarList[iccd].get(j);
+						long exposureid = mStdStar.getExposure_id();
+						iexp = expIdArrayList.indexOf(new Long(exposureid));
 						double airmass = mStdStar.getAirmass();
 						double deltamag = mStdStar.getDeltamag();
 						double deltamagerr = mStdStar.getDeltamagerr();
@@ -1192,7 +1399,11 @@ public class PhotomEqSolverYear1 {
 						double res = deltamag - (a[iccd] + k * airmass + b[iccd] * deltaStdColor);
 						sumres2 = sumres2 + res * res;
 						sumchi2 = sumchi2 + (res / deltamagerr)
-								* (res / deltamagerr);
+								* (res / deltamagerr);	
+						expResArrayList[iexp].add(new Double(res));
+						if (verbose > 2) {
+							System.out.println(exposureid + "\t" + iexp + "\t" + nexp + "\t" + res);
+						}
 					}
 				}
 			}
@@ -1203,17 +1414,184 @@ public class PhotomEqSolverYear1 {
 					rms = Math.sqrt(sumres2 / dof);
 				}
 			}
-			if (rms > 0. && rms < 0.02) {
-				photometricFlag = 1;
-			} else {
+			if (nexp <= 1) {
+				photometricFlag = -1;
+				System.out.println("QA3BEG Only " + nexp + " exposures in the fit... Setting photometricFlag=-1 (undetermined) QA3END");				
+			} else if (rms <= 0. || rms >= 0.02) {
 				photometricFlag = 0;
 				System.out.println("QA3BEG rms of solution = " + rms + ", which is considered non-photometric. QA3END");
+			} else {
+				photometricFlag = 1;
 			}
 			if (verbose > 1) {
 				System.out.println("        ntot=" + ntot + "  dof=" + dof
 						+ "  rms=" + rms + "  chi2=" + chi2);
 				System.out.println("");
 			}
+
+			
+			// Offset Exposure test (26 Nov 2013).
+			// Calculate the median residuals from each exposure, and use this 
+			// info to cull entire exposures that are significantly offset 
+			// photometrically from the mean of the others in the fit.
+			//
+			// But only do this if this was not the final iteration of the fit...
+			if (iteration < niterations - 1) {
+
+				// Calculate median residuals from each exposure...
+				double expMedianResList[] = new double[nexp];
+				double sumExp = 0.00;
+				double sumExp2 = 0.00;
+				int ntotExp = 0;
+				for (iexp = 0; iexp < nexp; iexp++) {
+
+					long exposureid = (Long) expIdArrayList.get(iexp);
+
+					//Find median of expResArrayList[iexp].  Don't forget to sort!
+					int expResSize = expResArrayList[iexp].size();
+					double expResList[] = new double[expResSize];
+					double expResSortedList[] = new double[expResSize];
+					for (int j = 0; j < expResSize; j++) {
+						expResList[j] = (Double) expResArrayList[iexp].get(j);
+						expResSortedList[j] = expResList[j];
+					}
+					Arrays.sort(expResSortedList);
+					int middle = expResSortedList.length/2;
+					double median;
+					if (expResSortedList.length == 0) {
+						median = -9999.;
+					} else if (expResSortedList.length%2 == 1) {
+						median = expResSortedList[middle];
+						sumExp  = sumExp + median;
+						sumExp2 = sumExp2 + median * median;
+						ntotExp++;
+					} else {
+						median = (expResSortedList[middle-1] + expResSortedList[middle]) / 2.0;
+						median = expResSortedList[middle];
+						sumExp  = sumExp + median;
+						sumExp2 = sumExp2 + median * median;
+						ntotExp++;
+					}
+
+					expMedianResList[iexp] = median;
+
+					if (verbose > 1) {
+						System.out.println("Exposureid = " + exposureid + " Median(expResSortedList) = " + expMedianResList[iexp] + " size(expResSortedList) = " + expResSortedList.length);
+					}
+
+				}
+
+				// Calculate mean and stddev of the exposure median residuals...
+				double meanExp;
+				double stdExp;
+				if (ntotExp > 0) {
+					meanExp = sumExp / ntotExp;
+				} else {
+					meanExp = -9999.;
+				}
+				if (ntotExp > 1) {
+					stdExp = Math.sqrt(sumExp2/ntotExp - meanExp*meanExp);
+				} else {
+					stdExp  = -9999.;
+				}
+
+				if (verbose > 1) {
+					System.out.println("mean(expZPs) = " + meanExp + " std(expZPs) = " + stdExp + " size(expZPs) = " + ntotExp);
+				}
+
+				// Create an array flagging bad exposures...
+				int badExpFlagArray[] = new int[nexp];
+				// Initialize badExpFlagArray...
+				for (iexp = 0; iexp < nexp; iexp++) {
+					badExpFlagArray[iexp] = 0;
+				}
+
+				// Flag all exposures that are significantly offset from the phototometric mean of the others... 
+				for (iexp = 0; iexp < nexp; iexp++) {	
+					long exposureid = (Long) expIdArrayList.get(iexp);
+					double deltaExpZP = -9999.;
+					if (ntotExp < 1) {
+						badExpFlagArray[iexp] = 1;
+					} else if (ntotExp == 1) {
+						// If there is only one exposure in the list,
+						// it cannot be significantly offset photometrically
+						// from itself.
+						badExpFlagArray[iexp] = 0;
+					} else {
+						deltaExpZP = expMedianResList[iexp] - meanExp;
+						if (Math.abs(deltaExpZP) > nsigma*stdExp) {
+							badExpFlagArray[iexp] = 1;
+						}
+					}
+					if (verbose > 1) {
+						System.out.println("Exposureid = " + exposureid + " expZP-mean(expZPs) = " + deltaExpZP + " badExpFlag = " + badExpFlagArray[iexp]);
+					}
+
+				}
+
+
+				// Cull stars from each significantly photometrically offset exposure... 
+
+				for (iexp = 0; iexp < nexp; iexp++) {
+
+					if (badExpFlagArray[iexp] == 1) {
+
+						// Remove this bad exposure from the exposure id list...
+						expIdArrayList.remove(new Long(expIdArray[iexp]));
+
+						// Remove stars in this bad exposure from the data...
+						// need to work backwards from highest index to lowest...
+						if (verbose > 1) {
+							System.out.println("Removing all objects from photometrically offset exposure " + expIdArray[iexp] + "...");
+						}
+						for (iccd = 0; iccd < nccd; iccd++) {
+							int size = mStdStarList[iccd].size();
+							if (size > 0) {
+								for (int j = 0; j < size; j++) {
+									int jj = (size - 1) - j;
+									MatchedStdStarYear1 mStdStar = (MatchedStdStarYear1) mStdStarList[iccd].get(jj);
+									long exposure_id = mStdStar.getExposure_id();
+									if (expIdArray[iexp] == exposure_id) {
+										if (verbose > 2) {
+											long object_id = mStdStar.getObject_id();
+											System.out
+											.println("        Removing object (object_id: " 
+													+ object_id +  
+													") on CCD "
+													+ ccdIdArray[iccd]
+													             + " in significantly photometric offset exposure "
+													             + exposure_id + ")");
+
+										}
+										mStdStarList[iccd].remove(jj);
+									}
+								}
+							}
+						}
+
+						if (verbose > 1) {
+							System.out.println("");
+						}
+
+					}
+
+				}
+
+				// If we have no exposures for the fit, exit with warning...
+				if (expIdArrayList.size() <= 0) {
+					System.out.println("STATUS5BEG ** No exposures remaining for next iteration of the fit...  Exiting now! ** STATUS5END");
+					System.exit(3);
+				} 
+				// If we have only one exposure for the fit, we must use the default k even if ksolve was set true...
+				if (ksolve && expIdArrayList.size() == 1) {
+					if (verbose > 0) {
+						System.out.println("Only one exposure remaining for the next iteration of the fit... using default k for the solution...");
+						System.out.println("");
+					}
+					ksolve = false;
+				}
+				
+			}			
 
 			// Cull outliers (if this was not the final iteration)
 			if (iteration < niterations - 1) {
@@ -2970,6 +3348,22 @@ public class PhotomEqSolverYear1 {
 
 	public void setIgnoreRasicam(boolean ignoreRasicam) {
 		this.ignoreRasicam = ignoreRasicam;
+	}
+
+	public double getDomeOcclusion_limit() {
+		return domeOcclusion_limit;
+	}
+
+	public void setDomeOcclusion_limit(double domeOcclusion_limit) {
+		this.domeOcclusion_limit = domeOcclusion_limit;
+	}
+
+	public boolean getIgnoreDomeOcclusion() {
+		return ignoreDomeOcclusion;
+	}
+
+	public void setIgnoreDomeOcclusion(boolean ignoreDomeOcclusion) {
+		this.ignoreDomeOcclusion = ignoreDomeOcclusion;
 	}
 
 }
