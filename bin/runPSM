@@ -3,7 +3,7 @@
 #  $Id$
 #
 #  $Rev::                                  $:  # Revision of last commit.
-#  $LastChangedBy::                        $:  # Author of last commit. 
+#  $LastChangedBy::                            $:  # Author of last commit. 
 #  $LastChangedDate::                      $:  # Date of last commit.
 #
 #  Developed at: 
@@ -49,15 +49,12 @@ my ($project, $nite, $run, $photflag, $qadir, $help);
 my $verbose = 1;
 my $prog = "PhotomEqSolverRunDC6";
 my $numCCDs = 62;
-my $maxrms = 0.01;
 my @bands=();
-my $updatedb = undef;
 
 &Getopt::Long::Configure( 'noignorecase', 'no_autoabbrev', 'passthrough');
 Getopt::Long::GetOptions(
     'bands=s'  => \@bands,
     'help' => \$help,
-    'maxrms=s'  => \$maxrms,
     'numccds=s'  => \$numCCDs,
     'prog=s' => \$prog,
     'nite=s'  => \$nite,
@@ -65,7 +62,6 @@ Getopt::Long::GetOptions(
     'project=s'  => \$project,
     'qadir=s'   => \$qadir,
     'run=s'  => \$run,
-    'updateDB' => \$updatedb,   # match case of PSM argument
     'verbose=i' => \$verbose,
 );
 
@@ -88,7 +84,6 @@ if (defined($help)) {
     print "\tWRAPPER OPTIONS\n";
     print "\t-bands b1,b2,b3\tPSM is run on each band in list (default g,r,i,z,Y)\n"; 
     print "\t-help\t\tprint usage for wrapper and PSM\n";
-    print "\t-maxrms val\t\tIf rms calculated by PSM is greater than val for any band, then PSM is not run with -updateDB option (default 0.01)\n";
     print "\t-numccds val\t\tThe minumum number of 'for CCD' lines in PSM output for 'good' run (Defaults to 62)\n";
     print "\t-prog <solver name> (defaults to PhotomEqSolverRunDC6)\n";
     print "\t-nite n\t\t\n";
@@ -96,7 +91,6 @@ if (defined($help)) {
     print "\t-project\t\t\n";
     print "\t-qadir dir\tMoves QA files output by PSM to this directory\n";
     print "\t-run\t\t\n";
-    print "\t-updatedb\t\tIf on command line, after checks, PSM is rerun with --updateDB option\n";
     print "\t-verbose v\t\t\n";
     print "\n\n";
     my $out = `java gov.fnal.eag.dtucker.desPhotoStds.$prog --help`;
@@ -146,8 +140,6 @@ else {
 }
 print "Running PSM for bands: ", join(',',@bands), "\n";
 
-
-#my $cmd = "java gov.fnal.eag.dtucker.desPhotoStds.PhotomEqSolverRunDC5 -P $project -n $nite --run $run --ccdid 0 --niter 3 --imageType red --bsolve --ksolve --magType mag_psf -v 2 --useOnlyCurrentObjects";
 my $basecmd = "java -Djava.awt.headless=true gov.fnal.eag.dtucker.desPhotoStds.$prog -P $project -n $nite --run $run "; 
 
 my $otherargs = "";
@@ -197,47 +189,9 @@ foreach my $b (@bands) {
         exit 1;
     }
 
-    if ($rms > $maxrms) {
-        reportEvent($verbose, "STATUS", 5, "rms too large for band $b (rms=$rms, maxrms=$maxrms)");
-        $failedQA = 1;
-    }
     if ($cntCCD < $numCCDs) {
         reportEvent($verbose,"STATUS",5,"not enough CCDs for band $b (found $cntCCD, needed $numCCDs)");
         $failedQA = 1;
-    }
-}
-
-if (!$failedQA && !$updatedb) {
-    print "Successful first pass of PSM\n"; 
-    print "Skipping updating database\n";
-}
-
-if (!$failedQA && $updatedb) {
-    print "Running PSM with updateDB for bands ", join(',',@bands), "\n";
-    foreach my $b (@bands) {
-        my $paramfile = "$basepath/gov/fnal/eag/dtucker/desPhotoStds/params/psmParam_des_$b.par";
-        if (! -r $paramfile) {
-            reportEvent($verbose, "STATUS", 5, "Error:  Could not find param file for band $b\n($paramfile)");
-            exit 1;
-        }
-        my $cmd = "$basecmd --skipQAPlots -f $b --paramFile $paramfile --updateDB";
-        reportEvent($verbose, "STATUS", 1, "$cmd");
-     
-        open (OUT, "$cmd 2>&1 |");
-        while (<OUT>) {
-            if (m/java.sql.SQLException/) {
-                reportEvent($verbose,"STATUS",5,$_);
-            }
-            else {
-                print $_;
-            }
-        }
-        close OUT;
-        my $exit = $?;
-        if ($exit != 0) {
-            reportEvent($verbose, "STATUS", 5, "Error:  non-zero exit code while running PSM for band $b");
-            exit 1;
-        }
     }
 }
 
