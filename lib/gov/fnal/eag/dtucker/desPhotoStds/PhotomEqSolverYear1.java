@@ -168,7 +168,7 @@ public class PhotomEqSolverYear1 {
 			System.out.println("");
 		}
 		if (filterIndex < 0) {
-			System.out.println("STATUS5BEG ** Incompatible filter index.  Throwing Exception! ** STATUS5END");
+			System.out.println("STATUS4BEG ** Incompatible filter index.  Throwing Exception! ** STATUS4END");
 			System.out.println("");
 			throw new Exception();
 		}
@@ -212,7 +212,7 @@ public class PhotomEqSolverYear1 {
 			System.out.println("");
 		}
 		if (cFilterIndex < 0) {
-			System.out.println("STATUS5BEG ** Incompatible cFilter index.  Throwing Exception! ** STATUS5END");
+			System.out.println("STATUS4BEG ** Incompatible cFilter index.  Throwing Exception! ** STATUS4END");
 			System.out.println("");
 			throw new Exception();
 		}
@@ -1070,8 +1070,8 @@ public class PhotomEqSolverYear1 {
 		
 		// If we have no exposures for the fit, exit with warning...
 		if (expIdArrayList.size() <= 0) {
-			System.out.println("STATUS5BEG ** No exposures for the fit...  Exiting now! ** STATUS5END");
-			System.exit(3);
+			System.out.println("STATUS4BEG ** No exposures for the fit...  Exiting now! ** STATUS4END");
+			System.exit(0);
 		} 
 		// If we have only one exposure for the fit, we must use the default k even if ksolve was set true...
 		if (ksolve && expIdArrayList.size() == 1) {
@@ -1183,8 +1183,8 @@ public class PhotomEqSolverYear1 {
 				}
 			}
 			if (starsFlag) {
-				System.out.println("STATUS5BEG ** Lost all std stars on one or more CCDs during sigma-clipping process...  Exiting now! ** STATUS5END");
-    			System.exit(3);
+				System.out.println("STATUS4BEG ** Lost all std stars on one or more CCDs during sigma-clipping process...  Exiting now! ** STATUS4END");
+    			System.exit(0);
 			}
 			
 			// Populate arrays containing the matrix to be inverted...
@@ -1579,8 +1579,8 @@ public class PhotomEqSolverYear1 {
 
 				// If we have no exposures for the fit, exit with warning...
 				if (expIdArrayList.size() <= 0) {
-					System.out.println("STATUS5BEG ** No exposures remaining for next iteration of the fit...  Exiting now! ** STATUS5END");
-					System.exit(3);
+					System.out.println("STATUS4BEG ** No exposures remaining for next iteration of the fit...  Exiting now! ** STATUS4END");
+					System.exit(0);
 				} 
 				// If we have only one exposure for the fit, we must use the default k even if ksolve was set true...
 				if (ksolve && expIdArrayList.size() == 1) {
