@@ -52,6 +52,7 @@ public class PhotomEqSolverRunYear1 {
         String imageNameFilterDefault = ph.getImageNameFilter();
         String imageidExcludeListDefault = ph.getImageidExcludeList();
         String exposureidExcludeListDefault = ph.getExposureidExcludeList();
+        String ccdExcludeListDefault  = ph.getCcdExcludeList();
         double expTimeLoDefault       = ph.getExpTimeLo();
         double expTimeHiDefault       = ph.getExpTimeHi();
         String runDefault             = ph.getRun();
@@ -103,6 +104,7 @@ public class PhotomEqSolverRunYear1 {
 				"   --imageNameFilter VALUE       image name filter for std star fields [default: " + imageNameFilterDefault + "] \n" +
 				"   --imageidExcludeList VALUE    list of image ids to exclude from fit [default: " + imageidExcludeListDefault + "] \n" +
 				"   --exposureidExcludeList VALUE list of image ids to exclude from fit [default: " + exposureidExcludeListDefault + "] \n" +
+				"   --ccdExcludeList VALUE        list of ccds to exclude from fit      [default: " + ccdExcludeListDefault + "] \n" +
 				"   --expTimeLo VALUE             exposure time limit (short)           [default: " + expTimeLoDefault + "] \n" +
 				"   --expTimeHi VALUE             exposure time limit (long)            [default: " + expTimeHiDefault + "] \n" +
 				"   --run VALUE                   run for std star fields               [default: " + runDefault + "] \n" + 
@@ -248,6 +250,7 @@ public class PhotomEqSolverRunYear1 {
         String imageNameFilterDefault = ph.getImageNameFilter();
         String imageidExcludeListDefault = ph.getImageidExcludeList();
         String exposureidExcludeListDefault = ph.getExposureidExcludeList();
+        String ccdExcludeListDefault  = ph.getCcdExcludeList();
         double expTimeLoDefault       = ph.getExpTimeLo();
         double expTimeHiDefault       = ph.getExpTimeHi();
         String runDefault             = ph.getRun();
@@ -317,6 +320,7 @@ public class PhotomEqSolverRunYear1 {
         CmdLineParser.Option imageNameFilterOption = parser.addStringOption("imageNameFilter");
         CmdLineParser.Option imageidExcludeListOption = parser.addStringOption("imageidExcludeList");
         CmdLineParser.Option exposureidExcludeListOption = parser.addStringOption("exposureidExcludeList");
+        CmdLineParser.Option ccdExcludeListOption  = parser.addStringOption("ccdExcludeList");
         CmdLineParser.Option expTimeLoOption       = parser.addDoubleOption("expTimeLo");
         CmdLineParser.Option expTimeHiOption       = parser.addDoubleOption("expTimeHi");
         CmdLineParser.Option runOption             = parser.addStringOption("run");
@@ -437,6 +441,8 @@ public class PhotomEqSolverRunYear1 {
      						imageidExcludeListDefault = field2;
      					} else if (field1.equals("exposureidExcludeList")) {
      						exposureidExcludeListDefault = field2;
+     					} else if (field1.equals("ccdExcludeList")) {
+     						ccdExcludeListDefault = field2;
      					} else if (field1.equals("expTimeLo")) {
      						expTimeLoDefault = Double.parseDouble(field2);
      					} else if (field1.equals("expTimeHi")) {
@@ -598,6 +604,7 @@ public class PhotomEqSolverRunYear1 {
     	String imageNameFilter = (String)parser.getOptionValue(imageNameFilterOption, imageNameFilterDefault);
     	String imageidExcludeList = (String)parser.getOptionValue(imageidExcludeListOption, imageidExcludeListDefault);
     	String exposureidExcludeList = (String)parser.getOptionValue(exposureidExcludeListOption, exposureidExcludeListDefault);
+    	String ccdExcludeList = (String)parser.getOptionValue(ccdExcludeListOption, ccdExcludeListDefault);
     	double expTimeLo = ((Double)parser.getOptionValue(expTimeLoOption, new Double(expTimeLoDefault))).doubleValue();
     	double expTimeHi = ((Double)parser.getOptionValue(expTimeHiOption, new Double(expTimeHiDefault))).doubleValue();
     	String run = (String)parser.getOptionValue(runOption, runDefault);
@@ -712,6 +719,9 @@ public class PhotomEqSolverRunYear1 {
     	
     	ph.setExposureidExcludeList(exposureidExcludeList);   
     	if (localVerbose > 0) {System.out.println("exposureidExcludeList="+ph.getExposureidExcludeList());}
+    	
+    	ph.setCcdExcludeList(ccdExcludeList);   
+    	if (localVerbose > 0) {System.out.println("ccdExcludeList="+ph.getCcdExcludeList());}
     	
     	ph.setExpTimeLo(expTimeLo);
     	if (localVerbose > 0) {System.out.println("expTimeLo="+ph.getExpTimeLo());}

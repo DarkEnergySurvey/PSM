@@ -112,6 +112,7 @@ public class PhotomEqSolverYear1 {
 	private String imageNameFilter = "%";
 	private String imageidExcludeList = "";
 	private String exposureidExcludeList = "";
+	private String ccdExcludeList = "";
 	private double expTimeLo =   2.;  // in seconds
 	private double expTimeHi = 100.;  // in seconds
 	private String run = "%";
@@ -371,6 +372,21 @@ public class PhotomEqSolverYear1 {
 			}
 		}		
 		
+		// Create array list of ccds to be excluded from the fit...
+		ArrayList ccdExcludeArrayList = new ArrayList();
+		st = new StringTokenizer(ccdExcludeList,",");
+		nTokens = st.countTokens();
+		System.out.println("nTokens=" + nTokens);
+		for (int i=0; i<nTokens; i++) {
+			int ccd2Exclude = Integer.parseInt((st.nextToken()).trim());
+			if (verbose > 1) {	
+				System.out.println(i + "\t" + ccd2Exclude + " added to ccd exclude list");
+			}
+			if (ccdExcludeArrayList.contains(ccd2Exclude) == false) {
+				ccdExcludeArrayList.add(new Integer(ccd2Exclude));
+			}
+		}		
+
 		
 		// Prepare to loop through all observations of standard stars obtained that night...
 		
@@ -550,6 +566,16 @@ public class PhotomEqSolverYear1 {
 					}
 					continue;
 				}
+			}
+
+			//New (30 Apr 2014):
+			// If this star lies in one of the excluded ccds, skip it
+			if (ccdExcludeArrayList.contains(ccd_number) == true) {
+				if (verbose > 0) {
+					System.out.println("objectid " + object_id +  " lies on ccd " + ccd_number + 
+										", which is part of ccd exclude list...  skipping... ");
+				}
+				continue;
 			}
 
 			
@@ -3364,6 +3390,14 @@ public class PhotomEqSolverYear1 {
 
 	public void setIgnoreDomeOcclusion(boolean ignoreDomeOcclusion) {
 		this.ignoreDomeOcclusion = ignoreDomeOcclusion;
+	}
+
+	public String getCcdExcludeList() {
+		return ccdExcludeList;
+	}
+
+	public void setCcdExcludeList(String ccdExcludeList) {
+		this.ccdExcludeList = ccdExcludeList;
 	}
 
 }
