@@ -1,28 +1,62 @@
 #!/usr/bin/env python
+
+# Code by B Yanny, comments by D Tucker.
+
 import math
 import sys
 import os
 import re
 
+##################################
+
+#advanceheadlist takes an RA from the observed catalog and creates/updates
+# a list of standard stars within a "sliding window" having a range of +/- 3arcsec of that RA
+# and taken from a catalog of standard stars that has been pre-sorted into order of ascending RA 
+
 def advanceheadlist(fid,radegl,decdegl,magul,maggl,magrl,magil,magzl,magyl,ra2,radeg1,fd1,fd2,done1,radct,decdct,expnumdct,ccddct,exptimedct,airmassdct,ampdct,magdct,magerrdct,class_stardct,flagsdct,banddct):
+
+ # DLT:  I think done2 is currently superfluous; see comments on the "while done2 == 0" 
+ #       block below...
  done2 = 0
+
+ # if we have finished reading the observed catalog, return...
  if (done1==1):
   return (done1,radeg1)
+
  tol=float(3.0/3600.)
+
+ # if the previous standard star RA (radeg1) is above the upper bound of the tolerance 
+ #  range, return...
  delta=float(radeg1-ra2)
  if (delta > tol):
   return (done1,radeg1)
+
+ # DLT:  I don't think this "while" (or the done2 parameter) is strictly necessary,
+ # since the "return (done1, radeg0)" at the end of this method occurs *within* the 
+ # while loop, not after it.  (Did I accidentally change the indentation of the 
+ # "return (done1, radeg0) in an earlier incarnation of this file???) 
  while done2 == 0:
+
+  # Read a line from the standard star file...
+
   l1=fd1.readline()
+
+  # if we have reached the end of the standard star file,
+  # return, indicating the standard star file is "done";
+  # otherwise, process the new line...
   if l1 ==  "":
    return (1,radeg1)
   else:
    l1s=l1.strip().split(',')
    radeg0=float(l1s[0])
    #print "should I add:"+' '+str(radeg0)+' ra2:'+str(ra2)+' '+str(radeg0-ra2-tol)
+
+   # if the RA of the standard star RA (radeg0) is below the lower bound of the tolerance 
+   #  range, return...
    if (radeg0-ra2) < -tol:
     return (done1,radeg1)
 
+   # add the standard star info to lists of ra, dec, mags for this sliding window...
    radegl.append(radeg0)
    decdegl.append(float(l1s[1]))
    magul.append(float(l1s[2]))
@@ -31,6 +65,9 @@ def advanceheadlist(fid,radegl,decdegl,magul,maggl,magrl,magil,magzl,magyl,ra2,r
    magil.append(float(l1s[5]))
    magzl.append(float(l1s[6]))
    magyl.append(float(l1s[7]))
+
+   # initialize lists for possible observed star/standard star matches and add 
+   # these lists to "dictionaries" associated with this standard star...
    radct.append([])
    decdct.append([])
    expnumdct.append([])
@@ -43,17 +80,31 @@ def advanceheadlist(fid,radegl,decdegl,magul,maggl,magrl,magil,magzl,magyl,ra2,r
    class_stardct.append([])
    flagsdct.append([])
    banddct.append([])
+
    #print "ral:"+str(len(radegl))+' '+str(radegl)+' ra2:'+str(ra2)
    #print "decl:"+str(decl)
+
+   # if the RA of the previous standard star is above the upper bound of the
+   #  tolerance range from the RA of this standard star, declare done2=1
    delta = (radeg1-radeg0)   
    if (delta > tol):
      done2 = 1
- 
+
+  # DLT:  Shouldn't this return be outside the "while done2 == 0" block?
+  #       With its current indentation, it is the final statement *within*
+  #       the "while done2 == 0" block.
   return (done1,radeg0)
 
+##################################
+
+# Write out the matched standard star/observed data to matched file...
+
 def cleancurlist(fid,radegl,decdegl,magul,maggl,magrl,magil,magzl,magyl,radct,decdct,expnumdct,ccddct,exptimedct,airmassdct,ampdct,magdct,magerrdct,class_stardct,flagsdct,banddct,ofd,ccdcount):
-  #print "cleaning check for "+str(len(radegl))+' '+str(radegl)+' '+str(len(radct[0]))+' '+str(radct[0])
+
+  # we only care about entry i=0 in the "dictionaries"...
   i=0
+
+  #print "cleaning check for "+str(len(radegl))+' '+str(radegl)+' '+str(len(radct[0]))+' '+str(radct[0])
   #print " rai "+' '+str(i)+"check j "+str(len(radct[i]))+' '+str(radct[i])
   #print " deci "+' '+str(i)+"check j "+str(len(radct[i]))+' '+str(decdct[i])
   #print " expnumi "+' '+str(i)+"check j "+str(len(radct[i]))+' '+str(expnumdct[i])
@@ -66,8 +117,13 @@ def cleancurlist(fid,radegl,decdegl,magul,maggl,magrl,magil,magzl,magyl,radct,de
   #print " classstari "+' '+str(i)+"check j "+str(len(radct[i]))+' '+str(class_stardct[i])
   #print " flagsi "+' '+str(i)+"check j "+str(len(radct[i]))+' '+str(flagsdct[i])
   #print " bandi "+' '+str(i)+"check j "+str(len(radct[i]))+' '+str(banddct[i])
+
+  # if there is at least one entry in the RA dictionary for this star, increment the running star id
   if len(radct[i]) > 0:
    fid += 1
+
+  # Loop through all the observations matched with standard star i...
+  # (Note that many standard stars may have zero matches...)
   for j in range(0,len(radct[i])):
    #print ral[i],decl[i],fidl[i],len(radct[i])
    band = banddct[i][j]
@@ -101,6 +157,7 @@ def cleancurlist(fid,radegl,decdegl,magul,maggl,magrl,magil,magzl,magyl,radct,de
    ccdcount[ccddct[i][j]] += 1
    ofd.write(str(fid)+','+str(radegl[i])+','+str(decdegl[i])+','+str(stdmag)+','+str(stdcolor)+','+str(bandid)+','+str(j)+','+str('%.6f'%radct[i][j])+','+str('%.6f'%decdct[i][j])+','+str(expnumdct[i][j])+','+str(ccddct[i][j])+','+str(exptimedct[i][j])+','+str(airmassdct[i][j])+','+str(ampdct[i][j])+','+str(magdct[i][j])+','+str('%.4f'%magerrdct[i][j])+','+str(class_stardct[i][j])+','+str(flagsdct[i][j])+','+str(banddct[i][j])+'\n')
 
+  # Delete the dictionaries associated with standard star i (=0 in the sliding RA window)...
   del radct[i]
   del decdct[i]
   del expnumdct[i]
@@ -114,6 +171,7 @@ def cleancurlist(fid,radegl,decdegl,magul,maggl,magrl,magil,magzl,magyl,radct,de
   del flagsdct[i]
   del banddct[i]
 
+  # Delete the lists associated with standard star i (=0 in the sliding RA window)...
   del radegl[i]
   del decdegl[i]
   del magul[i]
@@ -124,15 +182,21 @@ def cleancurlist(fid,radegl,decdegl,magul,maggl,magrl,magil,magzl,magyl,radct,de
   del magyl[i]
   return fid
 
-  
+##################################
+
+# Find first good match (not necessarily best matches) between an observed star and standard stars
+#  and place info into "dictionaries"
 def incurlist(radegl,decdegl,ra2,dec2,expnum2,ccd2,exptime2,airmass2,amp2,mag2,magerr2,class_star2,flags2,band2,radct,decdct,expnumdct,ccddct,exptimedct,airmassdct,ampdct,magdct,magerrdct,class_stardct,flagsdct,banddct):
   dtr=float(3.1415926/180.0)
   tol=float((2.0/3600.)**2)
   cosd=math.cos(dec2*dtr)
+  # Loop through all standards stars i in the sliding RA window for that oberved star...
   for i in range(0,len(radegl)):
    #print 'i is:'+str(i)+' ral is'+str(radegl)
    delta=(ra2-radegl[i])*(ra2-radegl[i])*cosd*cosd+(dec2-decdegl[i])*(dec2-decdegl[i])
    #print str(ra2)+' '+str(dec2)+' '+str(delta)+' '+str(tol)+' '+str(float(delta)-float(tol))
+   # Is the sky position of standard star i (in the sliding RA window) within a 2-arcsec radial tolerance 
+   # of the observed star?  If so, add the observed info to that standard star's dictionaries...
    if float(delta) < float(tol):
     #print 'here adding'+' '+str(ra2)+' '+str(delta)+' '+str(tol)
     radct[i].append(ra2)
@@ -148,22 +212,32 @@ def incurlist(radegl,decdegl,ra2,dec2,expnum2,ccd2,exptime2,airmass2,amp2,mag2,m
     flagsdct[i].append(flags2)
     banddct[i].append(band2)
     #print "appended another continuation of radeg1:"+str(radeg1)+" radct is:"+str(radct)
+    # if we found one match, we take it and break out of the loop...
     break
    #else:
     #print "no match"
   
   return 0
+
+##################################
   
 def Usage():
 	sys.exit("matchsort: file1 file2 outfile")
 
+##################################
+
+# Effectively, the "main" method...
 def matchsort(f1,f2,outfile):
  #print f1,f2,outfile
 
+ # initialize ccd counts for all ccds
  ccdcount=[]
  for i in range(0,63):
   ccdcount.append(0)
 
+ # initialize "dictionaries".
+ # Each element of "dictionary" is associated with a standard star.
+ # Each element is a list of information from the potential matches from the observed data.
  radct=[]
  decdct=[]
  expnumdct=[]
@@ -177,6 +251,8 @@ def matchsort(f1,f2,outfile):
  flagsdct=[]
  banddct=[]
 
+# initialize lists of standard stars.
+# These are actually lists of standards within a given sliding window of RA.
  radegl=[]
  decdegl=[]
  magul=[]
@@ -187,10 +263,17 @@ def matchsort(f1,f2,outfile):
  magyl=[]
  fidl=[]
 
+ # Open the output file for the standard star/observed star matches...
  ofd=open(outfile,'w')
  ofd.write('fid,radegstd,decdegstd,magstd,colorstd,bandidstd,j,ra,dec,expnum,ccd,exptime,airmass,amp,mag,magerr,class_star,flags,band\n')
+
  fid=0
+
+ # Open the standard star CSV file...
  fd1=open(f1)
+
+ # Identify columns in the standard star CSV file corresponding to 
+ # radeg, decdeg, magu, magg, magr, magi, magz, magy
  h1=fd1.readline()
  h1n=h1.strip().split(',')
  for i in range(0,len(h1n)):
@@ -212,8 +295,12 @@ def matchsort(f1,f2,outfile):
    if h1n[i] == 'magy':
     magycol1=i
     
- 
+ # Open CSV file of observed data... 
  fd2=open(f2)
+
+ # Identify columns in the CSV observed data file corresponding to 
+ # ra, dec, expnum, ccd, exptime, airmass, amp, mag, magerr, class_star
+ # flags, and band...
  h2=fd2.readline()
  h2n=h2.strip().split(',')
  for i in range(0,len(h2n)):
@@ -242,7 +329,14 @@ def matchsort(f1,f2,outfile):
     flagscol2=i
    if h2n[i] == 'band':
     bandcol2=i
-   
+
+ # initialize some variables
+ #  done = "are we done with the whole process yet?"
+ #  done1 = "are we done reading the observations file yet?"
+ #  radeg1, decdeg1 = "initial/previous values for standard star RA,DEC"
+ #  ra2, dec2 = "initial/previous values for observed star RA,DEC"
+ #  tol = "tolerance in arcsec"
+ #  linecnt = "line count"
  done=0
  done1=0
  radeg1=-999
@@ -251,11 +345,16 @@ def matchsort(f1,f2,outfile):
  dec2=-999
  tol = 3/3600.0
  linecnt = 0
+ 
+# Loop through file of observed data...
  while not done:
   linecnt += 1
   if linecnt/1000.0 == int(linecnt/1000.0): 
     print linecnt
   l2=fd2.readline()
+
+  # Are we done reading through the file of observed data yet?
+  # If so, break out of loop; otherwise, process the data line...
   if l2 == "":
    done = 1
    break
@@ -274,6 +373,8 @@ def matchsort(f1,f2,outfile):
    flags2=int(l2s[flagscol2])
    band2=str(l2s[bandcol2])
 
+  # Update the sliding RA window of possibly matching standard stars
+  #  and find possible matches...
   doneheadadv=0
   while not doneheadadv:
    (done1,radeg1)=advanceheadlist(fid,radegl,decdegl,magul,maggl,magrl,magil,magzl,magyl,ra2,radeg1,fd1,fd2,done1,radct,decdct,expnumdct,ccddct,exptimedct,airmassdct,ampdct,magdct,magerrdct,class_stardct,flagsdct,banddct)
@@ -283,7 +384,8 @@ def matchsort(f1,f2,outfile):
     break
    #break
 
-
+  # For this observed star, fill the "dictionaries" with all good matches from the sliding window lists of possible matches
+  # that fall within a radial tolerance of 2 arcsec...
   incurlist(radegl,decdegl,ra2,dec2,expnum2,ccd2,exptime2,airmass2,amp2,mag2,magerr2,class_star2,flags2,band2,radct,decdct,expnumdct,ccddct,exptimedct,airmassdct,ampdct,magdct,magerrdct,class_stardct,flagsdct,banddct)
 
 
@@ -307,12 +409,14 @@ def matchsort(f1,f2,outfile):
     fid=cleancurlist(fid,radegl,decdegl,magul,maggl,magrl,magil,magzl,magyl,radct,decdct,expnumdct,ccddct,exptimedct,airmassdct,ampdct,magdct,magerrdct,class_stardct,flagsdct,banddct,ofd,ccdcount)
   else:
     break
-   
+
+ # close the output file...
  ofd.close()
  #for i in range(0,63):
   #print str(i)+' '+str(ccdcount[i])
  sys.exit(0)
  
+##################################
 
 if __name__ == "__main__":
      if len(sys.argv[1:]) < 3 or (sys.argv[1] == '-h'):
