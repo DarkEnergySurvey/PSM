@@ -11,7 +11,7 @@
     
     create-cataloglist-from-db.py --help
     
-    create-cataloglist-from-db.py -s db-destest --nite 20131002 --reqnum 3 --attempt 1 --band g --outputFile psmcats-20131002-g-r03p01.list --verbose 1
+    create-cataloglist-from-db.py -s db-destest --nite 20131002 --reqnum 3 --attempt 1 --band g --outputCatListFile psmcats-20131002-g-r03p01.list --verbose 1
     
     """
 
@@ -33,7 +33,7 @@ def main():
     parser.add_argument('--reqnum', help='request number to be queried', default=3, type=int)
     parser.add_argument('--attempt', help='processing attempt to be queried (***CURRENTLY NOT USED***)', default=1, type=int)
     parser.add_argument('--band', help='band to be queried', default='g', choices=['u','g','r','i','z','Y'])
-    parser.add_argument('--outputFile', help='ASCII list file containing list of unique names of all catalog files (plus exposure and image-based info) returned by query', default='psmcats.list')
+    parser.add_argument('--outputCatListFile', help='ASCII list file containing list of unique names of all catalog files (plus exposure and image-based info) returned by query', default='psmcats.list')
     parser.add_argument('--verbose', help='verbosity level of output to screen (0,1,2,...)', default=0, type=int)
                         
     args = parser.parse_args()
@@ -88,8 +88,8 @@ def callcreatecataloglistfromdb(args):
     
     if args.verbose > 0: print "query took", time.time()-t0, "seconds"
     
-    print "Outputting query results to file", args.outputFile
-    with open(args.outputFile,'w') as csvFile:
+    print "Outputting query results to file", args.outputCatListFile
+    with open(args.outputCatListFile,'w') as csvFile:
         writer = csv.writer(csvFile,delimiter=',',  quotechar='|',
                             lineterminator='\n', quoting=csv.QUOTE_MINIMAL)
         #First output header...
