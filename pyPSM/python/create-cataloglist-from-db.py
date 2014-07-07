@@ -58,6 +58,9 @@ def callcreatecataloglistfromdb(args):
     # We add "/full/path/" to the catalog file name as a test for downstream
     # (Michelle gave a heads up that catalog names might include the path as well
     # as the base name).
+    # NOTE:  RASICAM cuts (if any) are now performed downstream (in extract-catalog-from-db.py).
+    #        The RASICAM info is grabbed via this query, but no RASICAM cuts now appear in the
+    #        the WHERE clause of this query.
     queryText = """
         SELECT e.expnum, concat('/full/path/',s.filename) as filename,
                e.nite, e.object, e.band, i.ccdnum, i.airmass,
