@@ -7,7 +7,7 @@ Examples:
 
 extract-catalog-from-db.py --help
 
-extract-catalog-from-db.py -s db-destest --inputCatListFile psmcats-20140202-g-r47p01.list --verbose 1
+extract-catalog-from-db.py -s db-destest --inputCatListFile psmcats-20131002-g-r03p01.list --outputObsFile obsquery-20131002-g-r03p01.csv --verbose 1
     
 """
 
@@ -23,9 +23,12 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('--section','-s',default='db-destest',
                         help='section in the .desservices file w/ DB connection information')
-    parser.add_argument('--inputCatListFile', help='ASCII list file containing list of unique names of all catalog files returned by query', default='psmcats.list')
+    parser.add_argument('--inputCatListFile', help='CSV file containing list of unique names of all catalog files (and exposure- and image-based info) returned by query', default='psmcats.list')
+    parser.add_argument('--outputObsFile', help='CSV file containing the observed star data to be matched and fit', default='obsdata.csv')
     parser.add_argument('--ignoreRasicam',help='include this flag to ignore RASICAM sky condition indicators', default=False, action='store_true')
     parser.add_argument('--keepIntermediateFiles',help='include this flag to keep (non-essential) intermediate files after running script', default=False, action='store_true')
+    parser.add_argument('--magType', help='mag type to use (mag_psf, mag_auto, mag_aper_8, ...)', default='mag_psf')
+    parser.add_argument('--sex_mag_zeropoint', help='default sextractor zeropoint to use to convert fluxes to sextractor mags (mag_sex = -2.5log10(flux) + sex_mag_zeropoint)', type=float, default=25.0)
     parser.add_argument('--verbose', help='verbosity level of output to screen (0, 1, 2, ...)', type=int, default=0)
                         
     args = parser.parse_args()
@@ -41,7 +44,9 @@ def callextractcatalogsfromdb(args):
     import cx_Oracle
     import csv
     import numpy as np
-    
+    import math
+    import string
+
     if args.verbose > 0: print args
     
     print 'Reading in catalog list input file %s' % args.inputCatListFile
@@ -94,7 +99,7 @@ def callextractcatalogsfromdb(args):
     for i in range(data['FILENAME'].size):
         data['FILENAME'][i] = os.path.basename(data['FILENAME'][i])
     # Then, convert the data['FILENAME'] numpy array into a python list...
-    #catFilenameList = data['FILENAME'].tolist()
+    #  but only for those entries for which the rasicamMask is set to "True"...
     catFilenameList = data['FILENAME'][np.where(rasicamMask)].tolist()
     
     
@@ -115,9 +120,9 @@ def callextractcatalogsfromdb(args):
     filetypeList      = data['FILETYPE'][np.where(rasicamMask)].tolist()
     crpix1List        = data['CRPIX1'][np.where(rasicamMask)].tolist()
     crpix2List        = data['CRPIX2'][np.where(rasicamMask)].tolist()
-    #Fix following line after further tests...
-    #naxis1List        = data['NAXIS1'][np.where(rasicamMask)].tolist()
-    naxis1List        = data['NAXIS2'][np.where(rasicamMask)].tolist()
+    #Fix following line after further tests...  (done!)
+    #naxis1List        = data['NAXIS2'][np.where(rasicamMask)].tolist()
+    naxis1List        = data['NAXIS1'][np.where(rasicamMask)].tolist()
     naxis2List        = data['NAXIS2'][np.where(rasicamMask)].tolist()
     gskyphotList      = data['GSKYPHOT'][np.where(rasicamMask)].tolist()
     gskyvarList       = data['GSKYVAR'][np.where(rasicamMask)].tolist()
@@ -157,27 +162,24 @@ def callextractcatalogsfromdb(args):
     print 'Loading %d catalog filenames to OPM_FILENAME_GTT table...' % len(catFilenameList)
     dbh.load_filename_gtt(catFilenameList)
     
+
     # Create query...
     
-    #SELECT e.expnum, s.filename,
-    #       s.object_number, s.x_image, s.y_image, s.radeg, s.decdeg, s.flux_psf, s.fluxerr_psf,
-    #       3600.*s.fwhm_world as fwhm_arcsec, s.class_star, s.spread_model, s.spreaderr_model, s.flags,
-    #       e.nite, e.object, e.band, i.ccdnum, i.airmass,
-    #       e.mjd_obs, e.exptime, i.skybrite, i.skysigma,
-    #       i.elliptic as image_ellipt, 0.27*i.fwhm as image_fwhm_arcsec,
-    #       i.saturate as image_sat_level, c.filetype, i.crpix1, i.crpix2, i.naxis2, i.naxis2,
-    #       rasicam.gskyphot, rasicam.gskyvar, rasicam.lskyphot, rasicam.lskyvar, rasicam.source
+    magType = args.magType
+    magType = magType.strip()
+    fluxType = magType.replace('mag','flux')
+    fluxerrType = magType.replace('mag','fluxerr')
     
     queryText = """
         SELECT s.filename,
-               s.object_number, s.x_image, s.y_image, s.radeg, s.decdeg, s.flux_psf, s.fluxerr_psf,
+               s.object_number, s.x_image, s.y_image, s.radeg, s.decdeg, s.%s, s.%s,
                3600.*s.fwhm_world as fwhm_arcsec, s.class_star, s.spread_model, s.spreaderr_model, s.flags
         FROM SE_OBJECT s, opm_filename_gtt g
         WHERE  s.filename=g.filename AND
                ( (s.class_star > 0.8) OR ((s.spread_model + 3.*spreaderr_model) between -0.003 AND 0.003) ) AND
                s.flux_psf > 2000. AND
                s.flags < 3
-        ORDER BY s.radeg"""
+        ORDER BY s.radeg""" % (fluxType, fluxerrType)
     
     
     if args.verbose > 0: print queryText
@@ -190,28 +192,51 @@ def callextractcatalogsfromdb(args):
     
     if args.verbose > 0: print "query took", time.time()-t0, "seconds"
     
-    queryOutFile = "obsquery.%s.%s.out" % (nite, band)
+
+    print 'Outputting query results to file', args.outputObsFile
     
-    print 'Outputting query results to file', queryOutFile
-    
-    with open(queryOutFile,'w') as csvFile:
+    with open(args.outputObsFile,'w') as csvFile:
         writer = csv.writer(csvFile,delimiter=',',  quotechar='|',
                             lineterminator='\n', quoting=csv.QUOTE_MINIMAL)
                             
         #First output (modified) header...
         hdr = [col[0] for col in cur.description]
         hdr.insert(0,'EXPNUM')
+        hdr.insert(9,'MAG')
+        hdr.insert(10,'MAGERR')
+        hdr.insert(11,'ZEROPOINT')
+        hdr.insert(12,'MAGTYPE')
         hdr.extend(['NITE','OBJECT','BAND','CCDNUM','AIRMASS','MJD_OBS','EXPTIME','SKYBRITE','SKYSIGMA','IMAGE_ELLIPT','IMAGE_FWHM_ARCSEC','IMAGE_SAT_LEVEL','FILETYPE','CRPIX1','CRPIX2','NAXIS1','NAXIS2','GSKYPHOT','GSKYVAR','LSKYPHOT','LSKYVAR','SOURCE'])
         if args.verbose > 2:  print hdr
         writer.writerow(hdr)
                             
         #Then output (modified) contents...
         for line in cur:
+
             # First change line from a tuple to a list,
             # so we can add to it...
             line = list(line)
+
+            # grab the catalog filename and place it in the "zeroth" column...
             catFilename = line[0].strip()
             line.insert(0,expnumDict[catFilename])
+
+            # calculate the Sextractor-like instrumental mag and magerr from the flux and fluxerr
+            #  and insert them (and the mag_zeropoint) just after the flux and fluxerr columns...
+            # after inserting the catFileName to position 0 of line in the previous step, 
+            #  line[7] should contain the flux and line[8] the fluxerr...
+            if line[7] > 0.:
+                mag = -2.5*math.log10(line[7]) + args.sex_mag_zeropoint
+                magerr = (2.5/math.log(10.))*(line[8]/line[7])
+            else:
+                mag = -9999.
+                magerr = -9999.
+
+            line.insert(9,mag)
+            line.insert(10,magerr)
+            line.insert(11,args.sex_mag_zeropoint)
+            line.insert(12,magType)
+
             line.extend([nite,
                          objectDict[catFilename],
                          band,
@@ -240,35 +265,6 @@ def callextractcatalogsfromdb(args):
     
     dbh.close()
 
-#    print 'Converting query results into mystar format...'
-#
-#    mystarsFile = "mystars.%s.%s.csv" % (nite, band)
-#    os.system("/bin/rm -f "+mystarsFile)
-#
-#    # First, print out header...
-#    cmd = 'echo "expnum,ccd,exptime,airmass,amp,ra,dec,mag,magerr,class_star,flags,band" > %s' % (mystarsFile)
-#    print cmd
-#    status = os.system(cmd)
-#    print status
-#    if status != 0:
-#        print "awk failed"
-#        sys.exit(1)
-#    else:
-#        print "awk succeeded"
-#
-#    #Next, print out contents...
-#
-#    #Note:  the values of fluxerr_psf seem abnormally low; we will calculate the magerr_psf directly from the flux and a gain of 4.8e-/ADU...
-#    #cmd="awk -F, 'BEGIN{OFS=","} NR>1 && $8>0. {print $1,$18,$21,$19,"-1",$6,$7,-2.5*0.43429448190325176*log($8)+25.,2.5*0.43429448190325176/sqrt(4.8*$8),$11,$14,$17}' %s >> %s" % (queryOutFile, mystarsFile)
-#    cmd="awk -F, 'BEGIN{OFS=\",\"} NR>1 && $8>0. {print $1,$18,$21,$19,\"-1\",$6,$7,-2.5*0.43429448190325176*log($8)+25.,2.5*0.43429448190325176/sqrt(4.8*$8),$11,$14,$17}' %s >> %s" % (queryOutFile, mystarsFile)
-#    print cmd
-#    status = os.system(cmd)
-#    print status
-#    if status != 0:
-#        print "awk failed"
-#        sys.exit(1)
-#    else:
-#        print "awk succeeded"
 
 
 ##################################
