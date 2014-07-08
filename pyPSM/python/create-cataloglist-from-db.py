@@ -66,7 +66,7 @@ def callcreatecataloglistfromdb(args):
                e.nite, e.object, e.band, i.ccdnum, i.airmass,
                e.mjd_obs, e.exptime, i.skybrite, i.skysigma,
                i.elliptic as image_ellipt, 0.27*i.fwhm as image_fwhm_arcsec,
-               i.saturate as image_sat_level, c.filetype, i.crpix1, i.crpix2, i.naxis2, i.naxis2,
+               i.saturate as image_sat_level, c.filetype, i.crpix1, i.crpix2, i.naxis1, i.naxis2,
                rasicam.gskyphot, rasicam.gskyvar, rasicam.lskyphot, rasicam.lskyvar, rasicam.source
         FROM EXPOSURE e, IMAGE i, WDF, CATALOG c, gruendl.rasicam_decam@desoper rasicam,
              (select distinct filename from se_object where nite=%s and reqnum=%d and band='%s') s
