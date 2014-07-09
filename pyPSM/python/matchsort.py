@@ -333,8 +333,9 @@ def matchsort(args):
     # Loop through file of observed data...
     while not done:
         linecnt += 1
-        if linecnt/1000.0 == int(linecnt/1000.0):
-            print linecnt
+        if ( (linecnt/1000.0 == int(linecnt/1000.0)) and (verbose > 1) ):
+            print '\r'+'Progress (lines read from observed catalog):  ',linecnt,
+            sys.stdout.flush()
         l2=fd2.readline()
 
         # Are we done reading through the file of observed data yet?
@@ -387,11 +388,17 @@ def matchsort(args):
         else:
             break
     
-    # close the output file...
+    # close the input and output files...
+    fd1.close()
+    fd2.close()
     ofd.close()
 
-    for i in range(0,63):
-        print str(i)+' '+str(ccdcount[i])
+    if verbose > 0:
+        print 
+        print 'ccdnum,nstds'
+        for i in range(0,63):
+            print str(i)+' '+str(ccdcount[i])
+        print
 
     sys.exit(0)
 
