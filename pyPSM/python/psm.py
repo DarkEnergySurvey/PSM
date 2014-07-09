@@ -3,6 +3,7 @@
 # Authors:   Brian Yanny and Douglas Tucker
 # Date:      17 May 2013
 # Updated:   23 May 2013
+# Updated:    9 Jul 2014
 
 # Description:
 #
@@ -51,8 +52,8 @@ def usage():
    print '   niter                           is the number of iterations for the outlier rejection   (required)'
    print '   thresholdit                     is the threshold (in mag) of for the outlier rejection  (required)'
    print '   --ksolve                        is a toggle to solve for the k term coefficient         (optional)'
-   print '   --ksolve                        is a toggle to solve for the b term coefficients        (optional)'
-   print '   --nite=\'20130221\'               is the nite of observation                              (optional)'
+   print '   --bsolve                        is a toggle to solve for the b term coefficients        (optional)'
+   #print '   --nite=\'20130221\'               is the nite of observation                              (optional)'
    print '   --project=\'OPS\'                 is the project id                                       (optional)'
    print '   --psmversion=\'pyPSM_v0.1\'       is the version of pyPSM being used                      (optional)'
    print '   --verbose                       is the verbosity level (default=0)                      (optional)'
@@ -63,7 +64,8 @@ def usage():
    print ' %s --help' % clientName
    print
 
-   nite = '20130221'               # nite of observation
+   # value of nite is now read from the input match file
+   #nite = '20130221'               # nite of observation
    project = 'OPS'                 # project name
    psmversion = 'pyPSM_v0.1'       # psm version id
    mag_type = 'mag_psf'            # type of magnitude used in fit (e.g., mag_psf, mag_aper_8, ...)
@@ -82,7 +84,7 @@ def psm(inmatches,outak,bandid,niter,thresholdit,ksolve,bsolve,nite,project,psmv
       print    'thresholdit:    '+str(thresholdit)
       print    'ksolve:         '+str(ksolve)
       print    'bsolve:         '+str(bsolve)
-      print    'nite:           '+str(nite)
+      #print    'nite:           '+str(nite)
       print    'project:        '+str(project)
       print    'psmversion:     '+str(psmversion)
       print    'mag_type:       '+str(mag_type)
@@ -90,14 +92,6 @@ def psm(inmatches,outak,bandid,niter,thresholdit,ksolve,bsolve,nite,project,psmv
       print
    #endif
 
-   # mjdlo and mjdhi are relatively low-priority parameters which should
-   # eventually either be passed in the psm argument list or derived 
-   # from info from the inmatches file...
-   # They are part of the PSMFIT table schema and are useful for a QA plot
-   # of residuals vs. time.
-   mjdlo = -1.                     # time and date of earliest observation in fit (expressed as an MJD) 
-   mjdhi = -1.                     # time and date of latest observation in fit (expressed as an MJD) 
-   
    # Currently, pyPSM always solves for the a coefficients.
    # If, in the future, the option is added to choose whether
    # or not the a coefficients will be solved for, an "--asolve"
@@ -184,8 +178,8 @@ def psm(inmatches,outak,bandid,niter,thresholdit,ksolve,bsolve,nite,project,psmv
    resfile = inmatches+'.'+fitband+'.res.csv'
    outfitsfile = inmatches+'.'+fitband+'.fit'
 
-   # The default zeropoint...
-   defaultzp = 0.0
+   ## The default zeropoint...
+   #defaultzp = 0.0
 
    # The base magnitude error (for adding in quadrature with the Poisson error)
    baseMagErr = 0.02
@@ -225,33 +219,88 @@ def psm(inmatches,outak,bandid,niter,thresholdit,ksolve,bsolve,nite,project,psmv
 
       # counter of stars on each CCD...
       nstar = numpy.zeros(nccd,dtype=numpy.int)
+
+      # initialize range of mjd's covered by the standard star observations included in the fit
+      mjdobsLo =  1.00e6
+      mjdobsHi = -1.00e6
+
+      # initialize value of nite; we currently assume that there is only one nite represented
+      #   in the input match file...
+      # (should add sanity check at some point to verify there is only only nite represented)
+      nite = -1
+
+      # Open input file, read header, and identify necessary columns...
       fd=open(infile)
-      fd.readline()
+      h=fd.readline()
+      hn=h.strip().split(',')
+      for i in range(0,len(hn)):
+         if hn[i].upper() == 'NITE':
+            nitecol=i
+         if hn[i].upper() == 'MJD_OBS':
+            mjdobscol=i
+         if hn[i].upper() == 'EXPNUM':
+            expnumcol=i
+         if hn[i].upper() == 'BAND':
+            bandcol=i
+         if hn[i].upper() == 'EXPTIME':
+            exptimecol=i
+         if hn[i].upper() == 'AIRMASS':
+            airmasscol=i
+         if hn[i].upper() == 'CCDNUM':
+            ccdcol=i
+         if hn[i].upper() == 'FILENAME':
+            catfilenamecol=i
+         if hn[i].upper() == 'CRPIX1':
+            crpix1col=i
+         if hn[i].upper() == 'CRPIX2':
+            crpix2col=i
+         if hn[i].upper() == 'NAXIS1':
+            naxis1col=i
+         if hn[i].upper() == 'NAXIS2':
+            naxis2col=i
+         if hn[i].upper() == 'X_IMAGE':
+            ximagecol=i
+         if hn[i].upper() == 'Y_IMAGE':
+            yimagecol=i
+         if hn[i].upper() == 'MAG':
+            magcol=i
+         if hn[i].upper() == 'MAGERR':
+            magerrcol=i
+         if hn[i].upper() == 'ZEROPOINT':
+            zeropointcol=i
+         if hn[i].upper() == 'MAGSTD':
+            magstdcol=i
+         if hn[i].upper() == 'COLORSTD':
+            colorstdcol=i
+      #endfor
+      
 
       # Read input file line-by-line and populate AA and BB matrices 
       # (to solve matrix equation AA.XX=BB)...
       for l in fd:
          lsp=l.strip().split(',')
-         band=lsp[18]
+         band=lsp[bandcol]
          if band != fitband:
             continue
          #endif
  
-         colorstd=float(lsp[4])
+         colorstd=float(lsp[colorstdcol])
          if ((band == 'i' or band == 'z') and (colorstd < 0.0 or colorstd > 0.7)) or ((band == 'g' or band == 'r') and (colorstd < 0.2 or colorstd > 1.2)):
             continue
          #endif
 
-         ccd = int(lsp[10])
-         magstd = float(lsp[3])
-         mag = float(lsp[14])
-         magerr = float(lsp[15])
+         ccd = int(lsp[ccdcol])
+         magstd = float(lsp[magstdcol])
+         mag = float(lsp[magcol])
+         magerr = float(lsp[magerrcol])
          #totMagErr = math.sqrt(baseMagErr*baseMagErr + magerr*mag)
          totMagErr = baseMagErr
          weight = 1.0/(baseMagErr*baseMagErr)
-         exptime = float(lsp[11])
-         airmass = float(lsp[12])
-         dm  = (mag - defaultzp + 2.5*math.log(exptime,10)) - magstd
+         exptime = float(lsp[exptimecol])
+         airmass = float(lsp[airmasscol])
+         zeropoint = float(lsp[zeropointcol])
+         dm  = (mag - (zeropoint-25.) + 2.5*math.log(exptime,10)) - magstd
+         #dm  = (mag - defaultzp + 2.5*math.log(exptime,10)) - magstd
 
          if abs(dm) < 4.5:
 
@@ -371,25 +420,34 @@ def psm(inmatches,outak,bandid,niter,thresholdit,ksolve,bsolve,nite,project,psmv
       # Output to matched catalog output file those stars that
       # survive this iteration's clipping...
       ofd3=open(resfile,'w')
-      ofd3.write('res,airmass,magstd,colorstd,ccd,expnum\n')
+      ofd3.write('res,airmass,magstd,colorstd,ccd,expnum,mjdobs,crpix1,crpix2,naxis1,naxis2,ximage,yimage,catfilename\n')
       ofd2=open(outfile,'w')
       fd=open(infile)
       for l in fd:
          lsp=l.strip().split(',')
-         band=lsp[18]
+         band=lsp[bandcol]
          if band != fitband:
             continue
 
-         colorstd=float(lsp[4])
+         colorstd=float(lsp[colorstdcol])
          if ((band == 'i' or band == 'z') and (colorstd < 0.0 or colorstd > 0.7)) or ((band == 'g' or band == 'r') and (colorstd < 0.2 or colorstd > 1.2)):
             continue
 
-         ccd=int(lsp[10])
-         magstd=float(lsp[3])
-         mag=float(lsp[14])
-         exptime=float(lsp[11])
-         airmass=float(lsp[12])
-         expnum=int(lsp[9])
+         ccd=int(lsp[ccdcol])
+         magstd=float(lsp[magstdcol])
+         mag=float(lsp[magcol])
+         exptime=float(lsp[exptimecol])
+         airmass=float(lsp[airmasscol])
+         expnum=int(lsp[expnumcol])
+         nite=lsp[nitecol]
+         mjdobs=float(lsp[mjdobscol])
+         crpix1=float(lsp[crpix1col])
+         crpix2=float(lsp[crpix2col])
+         naxis1=int(lsp[naxis1col])
+         naxis2=int(lsp[naxis2col])
+         ximage=float(lsp[ximagecol])
+         yimage=float(lsp[yimagecol])
+         catfilename=lsp[catfilenamecol].strip()
          # Note:  should change befault to XX[nccd+ccd]
          #dm = (mag + 2.5*math.log(exptime,10) - XX[ccd] - XX[0]*airmass - bdefault*(colorstd-color0)) - magstd
          dm = (mag + 2.5*math.log(exptime,10) - XX[ccd] - XX[0]*airmass - XX[nccd+ccd]*(colorstd-color0)) - magstd
@@ -400,8 +458,10 @@ def psm(inmatches,outak,bandid,niter,thresholdit,ksolve,bsolve,nite,project,psmv
          ninfit += 1
          # Should change to a sigma-clip...
          if abs(dm) < thresholdit:
+            if (mjdobs < mjdobsLo):  mjdobsLo = mjdobs
+            if (mjdobs > mjdobsHi):  mjdobsHi = mjdobs
             ofd2.write(l)
-            resOutputLine = '%.4f,%.3f,%.4f,%.4f,%d,%d\n' % (dm,airmass,magstd,colorstd,ccd,expnum)
+            resOutputLine = '%.4f,%.3f,%.4f,%.4f,%d,%d,%.5f,%.3f,%.3f,%d,%d,%.5f,%.5f,%s\n' % (dm,airmass,magstd,colorstd,ccd,expnum,mjdobs,crpix1,crpix2,naxis1,naxis2,ximage,yimage,catfilename)
             ofd3.write(resOutputLine)
          #endif
    
@@ -466,8 +526,8 @@ def psm(inmatches,outak,bandid,niter,thresholdit,ksolve,bsolve,nite,project,psmv
    ccdidArray = numpy.arange(1,63)
    niteFormat = 'A%d' % len(nite)
    niteArray = numpy.array([nite]*62)
-   mjdloArray = mjdlo*numpy.ones(nccd,dtype=numpy.int)
-   mjdhiArray = mjdhi*numpy.ones(nccd,dtype=numpy.int)
+   mjdloArray = mjdobsLo*numpy.ones(nccd,dtype=numpy.int)
+   mjdhiArray = mjdobsHi*numpy.ones(nccd,dtype=numpy.int)
    ccdidArray = numpy.arange(1,63)
    bandFormat = 'A%d' % len(band)
    bandArray = numpy.array([band]*62)
@@ -498,8 +558,8 @@ def psm(inmatches,outak,bandid,niter,thresholdit,ksolve,bsolve,nite,project,psmv
    mag_typeArray = numpy.array([mag_type]*62)
    
    col1  = pyfits.Column(name='nite',           format=niteFormat, array=niteArray)
-   col2  = pyfits.Column(name='mjdlo',          format='E', array=mjdloArray)
-   col3  = pyfits.Column(name='mjdhi',          format='E', array=mjdhiArray)
+   col2  = pyfits.Column(name='mjdlo',          format='D', array=mjdloArray)
+   col3  = pyfits.Column(name='mjdhi',          format='D', array=mjdhiArray)
    col4  = pyfits.Column(name='ccdid',          format='I', array=ccdidArray)
    col5  = pyfits.Column(name='band',           format=bandFormat, array=bandArray)
    col6  = pyfits.Column(name='a',              format='E', array=aArray)
