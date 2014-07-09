@@ -1,8 +1,39 @@
 #!/usr/bin/env python
+"""
+matchsort.py
+
+Take a standard star catalog (pre-sorted in ascending order by RA) 
+and an observed catalog (also pre-sorted in ascending order by RA) 
+and match them by their RA,DEC coordinates.
+
+Examples:
+
+matchsort.py --help
+
+matchsort.py --inputStdStarCatFile stdstarcat-v6.csv --inputObsCatFile obsquery-20131002-g-r03p01.csv --outputMatchFile matched-20131002-g-r03p01.csv --verbose 1
+
+"""
+
 import math
 import sys
 import os
 import re
+
+##################################
+
+def main():
+    import argparse
+    """Create command line arguments"""
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument('--inputStdStarCatFile', help='CSV file containing the standard star catalog to be used in the match', default='standardstarcat.csv')
+    parser.add_argument('--inputObsCatFile', help='CSV file containing the catalog of observations to be used in the match', default='obsquery.csv')
+    parser.add_argument('--outputMatchFile', help='CSV file containing the output of the match', default='matched.csv')
+    parser.add_argument('--verbose', help='verbosity level of output to screen (0, 1, 2, ...)', type=int, default=0)
+                        
+    args = parser.parse_args()
+
+    matchsort(args)
+
 
 ##################################
 
@@ -196,16 +227,15 @@ def incurlist(radegl,decdegl,ra2,dec2,band2,ccd2,obsline2,radct,decdct,banddct,c
     
     return 0
 
-##################################
 
-def Usage():
-	sys.exit("matchsort: file1 file2 outfile")
-
-##################################
-
-# Effectively, the "main" method...
-def matchsort(f1,f2,outfile):
+# The upper-level match method...
+def matchsort(args):
     
+    f1=args.inputStdStarCatFile
+    f2=args.inputObsCatFile
+    outfile=args.outputMatchFile
+    verbose=args.verbose
+
     # initialize ccd counts for all ccds
     ccdcount=[]
     for i in range(0,63):
@@ -365,10 +395,11 @@ def matchsort(f1,f2,outfile):
 
     sys.exit(0)
 
+
+
 ##################################
 
 if __name__ == "__main__":
-    if len(sys.argv[1:]) < 3 or (sys.argv[1] == '-h'):
-        Usage()
-    matchsort(sys.argv[1],sys.argv[2],sys.argv[3])
+    main()
 
+##################################
