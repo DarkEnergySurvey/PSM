@@ -177,6 +177,7 @@ def psm(inmatches,outak,bandid,niter,thresholdit,ksolve,bsolve,nite,project,psmv
    outfile = inmatches+'.'+fitband+'.tmp'
    resfile = inmatches+'.'+fitband+'.res.csv'
    outfitsfile = inmatches+'.'+fitband+'.fit'
+   usedcatfilesfile = inmatches+'.'+fitband+'.cats.list'
 
    ## The default zeropoint...
    #defaultzp = 0.0
@@ -228,6 +229,9 @@ def psm(inmatches,outak,bandid,niter,thresholdit,ksolve,bsolve,nite,project,psmv
       #   in the input match file...
       # (should add sanity check at some point to verify there is only only nite represented)
       nite = -1
+
+      # initialize list of image catalog files used in the PSM fit...
+      usedcatfilesList = []
 
       # Open input file, read header, and identify necessary columns...
       fd=open(infile)
@@ -460,6 +464,7 @@ def psm(inmatches,outak,bandid,niter,thresholdit,ksolve,bsolve,nite,project,psmv
          if abs(dm) < thresholdit:
             if (mjdobs < mjdobsLo):  mjdobsLo = mjdobs
             if (mjdobs > mjdobsHi):  mjdobsHi = mjdobs
+            usedcatfilesList.append(catfilename)
             ofd2.write(l)
             resOutputLine = '%.4f,%.3f,%.4f,%.4f,%d,%d,%.5f,%.3f,%.3f,%d,%d,%.5f,%.5f,%s\n' % (dm,airmass,magstd,colorstd,ccd,expnum,mjdobs,crpix1,crpix2,naxis1,naxis2,ximage,yimage,catfilename)
             ofd3.write(resOutputLine)
@@ -497,6 +502,19 @@ def psm(inmatches,outak,bandid,niter,thresholdit,ksolve,bsolve,nite,project,psmv
       #endif
 
    #endfor (iiter)
+
+   # Find unique filenames in usedcatfilesList (using python "set" command), 
+   #  re-convert the set back to a list, sort the final and unique list, and 
+   #  output to (usedcatfilesfile...
+   usedcatfilesSet = set(usedcatfilesList)
+   usedcatfilesList = list (usedcatfilesSet)
+   usedcatfilesList.sort()
+   ofd4=open(usedcatfilesfile,'w')
+   ofd4.write('FILENAME\n')
+   for i in range(0,len(usedcatfilesList)):
+      ofd4.write(usedcatfilesList[i]+'\n')
+   #endfor
+   ofd4.close()
 
 
    # Output the results of fit...
