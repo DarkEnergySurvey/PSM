@@ -3,31 +3,43 @@
 # Authors:   Brian Yanny and Douglas Tucker
 # Date:      17 May 2013
 # Updated:   23 May 2013
-# Updated:    9 Jul 2014
+# Updated:   10 Jul 2014
 
-# Description:
-#
-# This file defines methods for solving the photometric zeropoints
-# (a_1, a_2, ..., a_N), the instrumental color term coefficients
-# (b_1, b_2, ..., b_N), and the first-order extinction (k) for a
-# given band for a given night by fitting the following equation
-# for standard star observations:
-#    m_inst-m_std = a_1 + ... a_N +
-#                   b_1*(stdColor-stdColor0) + ... +
-#                   b_N*(stdColor-stdColor0) + kX,
-# where m_inst is the instrumental (observed) mag of a standard
-# star, m_std is the known calibrated mag of the standard star,
-# stdColor is the known calibrated color of the standard star
-# (e.g., its g-r color), stdColor0 is a zeropoint constant for
-# the standard color and X is the airmass of the observation.
-#
-# For a camera with a single CCD, the above equation reduces to
-# the following, simpler form:
-#    m_inst-m_std = a + b*(stdColor-stdColor0) + kX
-#
-# For the explicit case of the g band and a g-r color,
-# this single-CCD example looks like this:
-#   g_inst-g_std = a + b*( (g-r) - (g-r)_0 ) + kX
+"""
+psm.py
+
+Description:
+
+This file defines methods for solving the photometric zeropoints
+(a_1, a_2, ..., a_N), the instrumental color term coefficients
+(b_1, b_2, ..., b_N), and the first-order extinction (k) for a
+given band for a given night by fitting the following equation
+for standard star observations:
+   m_inst-m_std = a_1 + ... a_N +
+                  b_1*(stdColor-stdColor0) + ... +
+                  b_N*(stdColor-stdColor0) + kX,
+where m_inst is the instrumental (observed) mag of a standard
+star, m_std is the known calibrated mag of the standard star,
+stdColor is the known calibrated color of the standard star
+(e.g., its g-r color), stdColor0 is a zeropoint constant for
+the standard color and X is the airmass of the observation.
+
+For a camera with a single CCD, the above equation reduces to
+the following, simpler form:
+   m_inst-m_std = a + b*(stdColor-stdColor0) + kX
+
+For the explicit case of the g band and a g-r color,
+this single-CCD example looks like this:
+   g_inst-g_std = a + b*( (g-r) - (g-r)_0 ) + kX
+
+
+Examples:
+
+psm.py --help
+
+psm.py --inputMatchFile matched-20131002-g-r03p01.csv --outputResultsFITSFile psmResults-20131002-g-r03p01.fits --outputResultsLogFile psmResults-20131002-g-r03p01.log --outputResidualsFile psmResiduals-20131002-g-r03p01.csv --outputCatsUsedFile psmCats-20131002-g-r03p01.list --band g --niter 3 --thresholdit 0.1 --ksolve --bsolve --verbose 3
+
+"""
 
 import numpy
 import sys
@@ -38,83 +50,104 @@ import pyfits
 import datetime
 
 #---------------------------------------------------------------------------
-# Client usage.
 
-def usage():
-    clientName = os.path.basename(sys.argv[0])
-    print
-    print 'Usage:'
-    print ' %s <inmatches> <outak> <bandid> <niter> <thresholdit> [--ksolve] [--bsolve] [--verbose=0 (default)] [-h,--help]' % clientName
-    print 'where:'
-    print '   inmatches                       is the input match file                                 (required)'
-    print '   outak                           is the output file                                      (required)'
-    print '   bandid                          is the band id number (u=0,g=1,r=2,i=3,z=4,Y=5)         (required)'
-    print '   niter                           is the number of iterations for the outlier rejection   (required)'
-    print '   thresholdit                     is the threshold (in mag) of for the outlier rejection  (required)'
-    print '   --ksolve                        is a toggle to solve for the k term coefficient         (optional)'
-    print '   --bsolve                        is a toggle to solve for the b term coefficients        (optional)'
-    #print '   --nite=\'20130221\'               is the nite of observation                              (optional)'
-    print '   --project=\'OPS\'                 is the project id                                       (optional)'
-    print '   --psmversion=\'pyPSM_v0.1\'       is the version of pyPSM being used                      (optional)'
-    print '   --verbose                       is the verbosity level (default=0)                      (optional)'
-    print '   -h,--help                       is a toggle to print out this usage guide               (optional)'
-    print
-    print 'Examples:'
-    print ' %s matchemup.csv psm_solve_Y.txt 5 4 0.1 --bsolve --ksolve --verbose=3' % clientName
-    print ' %s --help' % clientName
-    print
-    
-    # value of nite is now read from the input match file
-    #nite = '20130221'               # nite of observation
-    project = 'OPS'                 # project name
-    psmversion = 'pyPSM_v0.1'       # psm version id
-    mag_type = 'mag_psf'            # type of magnitude used in fit (e.g., mag_psf, mag_aper_8, ...)
+def main():
+    import argparse
+    """Create command line arguments"""
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument('--inputMatchFile', help='CSV file containing the matches from matchsort.py', default='matched.csv')
+    parser.add_argument('--outputResultsFITSFile', help='FITS table containing the results from the fit (for upload to the DESDM database)', default='psmResults.fits')
+    parser.add_argument('--outputResultsLogFile', help='ASCII text file containing a human-readable log of the results from the fit', default='psmResults.log')
+    parser.add_argument('--outputResidualsFile', help='CSV table containing the final fit residuals vs. a variety of parameters (used downstreadm by psmQA.py)', default='psmResiduals.csv')
+    parser.add_argument('--outputCatsUsedFile', help='ASCII list of the image catalogs used in the final fit)', default='psmCats.list')
+    parser.add_argument('--niter', help='the number of iterations for the outlier rejection', type=int, default=0)
+    parser.add_argument('--thresholdit', help='the threshold (in mag) for the outlier rejection', type=float, default=0)
+    parser.add_argument('--band', help='band to be fit', default='g', choices=['u','g','r','i','z','Y'])
+    parser.add_argument('--bsolve',help='a toggle to solve for the b term coefficients', default=False, action='store_true')
+    parser.add_argument('--ksolve',help='a toggle to solve for the k term coefficient', default=False, action='store_true')
+    parser.add_argument('--expnumExcludeList', help='a comma-separated list of EXPNUMs to exclude from the fit', default='')
+    parser.add_argument('--ccdExcludeList', help='a comma-separated list of CCDNUMs to exclude from the fit', default='')
+    parser.add_argument('--exptimeLo', help='exposure time lower limit (in seconds) to use in fit', type=float, default=2.0)
+    parser.add_argument('--exptimeHi', help='exposure time upper limit (in seconds) to use in fit', type=float, default=100.0)
+    parser.add_argument('--magLo', help='std star mag lower limit  to use in fit', type=float, default=15.0)
+    parser.add_argument('--magHi', help='std star mag upper limit to use in fit', type=float, default=18.0)
+    parser.add_argument('--project', help='the project id (deprecated?)', default='OPS')
+    parser.add_argument('--psmversion', help='the version of pyPSM being used (deprecated?)', default='pyPSM_v0.1')
+    parser.add_argument('--verbose', help='verbosity level of output to screen (0, 1, 2, ...)', type=int, default=0)
+
+    args = parser.parse_args()
+
+    if args.verbose > 0: print args
+
+    psm(args)
 
 #---------------------------------------------------------------------------
 
-def psm(inmatches,outak,bandid,niter,thresholdit,ksolve,bsolve,nite,project,psmversion,mag_type,verbose):
-    
-    if verbose>1:
-        print 'psm arguments:'
-        print '----------------------------------'
-        print    'inmatches:      '+str(inmatches)
-        print    'outak:          '+str(outak)
-        print    'bandid:         '+str(bandid)
-        print    'niter:          '+str(niter)
-        print    'thresholdit:    '+str(thresholdit)
-        print    'ksolve:         '+str(ksolve)
-        print    'bsolve:         '+str(bsolve)
-        #print    'nite:           '+str(nite)
-        print    'project:        '+str(project)
-        print    'psmversion:     '+str(psmversion)
-        print    'mag_type:       '+str(mag_type)
-        print    'verbose:        '+str(verbose)
-        print
-    #endif
+def psm(args):
+
+    infile = args.inputMatchFile
+    outfitsfile = args.outputResultsFITSFile
+    outlogfile = args.outputResultsLogFile
+    outresfile = args.outputResidualsFile
+    outcatsfile = args.outputCatsUsedFile
+    fitband = args.band
+    niter = args.niter
+    thresholdit = args.thresholdit
+    exptimelo = args.exptimeLo
+    exptimehi = args.exptimeHi
+    maglo = args.magLo
+    maghi = args.magHi
+    project = args.project
+    psmversion = args.psmversion
+    verbose = args.verbose
+
+    ccdExcludeArray = numpy.sort(numpy.fromstring(args.ccdExcludeList,dtype=int,sep=','))
+    expnumExcludeArray = numpy.sort(numpy.fromstring(args.expnumExcludeList,dtype=int,sep=','))
+
+    if args.ksolve:
+        ksolve=1
+    else:
+        ksolve=0
+
+    if args.bsolve:
+        bsolve=1
+    else:
+        bsolve=0    
     
     # Currently, pyPSM always solves for the a coefficients.
     # If, in the future, the option is added to choose whether
     # or not the a coefficients will be solved for, an "--asolve"
     # toggle should be added to Main method...
     asolve = 1
+
+    if verbose>1:
+        print 'psm.py parameters:'
+        print '----------------------------------'
+        print    'infile:           '+str(infile)
+        print    'outfitsfile:      '+str(outfitsfile)
+        print    'outlogfile:       '+str(outlogfile)
+        print    'outresfile:       '+str(outresfile)
+        print    'outcatsfile:      '+str(outcatsfile)
+        print    'fitband:          '+str(fitband)
+        print    'niter:            '+str(niter)
+        print    'thresholdit:      '+str(thresholdit)
+        print    'asolve:           '+str(asolve)
+        print    'bsolve:           '+str(bsolve)
+        print    'ksolve:           '+str(ksolve)
+        print    'ccdExcludeList    '+str(ccdExcludeArray)
+        print    'expnumExcludeList '+str(expnumExcludeArray)
+        print    'exptimelo         '+str(exptimelo)
+        print    'exptimehi         '+str(exptimehi)
+        print    'maglo             '+str(maglo)
+        print    'maghi             '+str(maghi)
+        print    'project:          '+str(project)
+        print    'psmversion:       '+str(psmversion)
+        print    'verbose:          '+str(verbose)
+        print
+    #endif
     
     # Use the signal value to denote values that are bad or meaningless...
     signalValue = -9999.00
-    
-    # Extract info from the list of arguments passed to psm.py...
-    # First, convert certain arguments from strings to numbers...
-    bandid = int(bandid)
-    niter = int(niter)
-    thresholdit = float(thresholdit)
-    
-    # Determine which band is to be solved for
-    bandlist = ['u','g','r','i','z','Y']
-    if bandid < len(bandlist):
-        fitband = bandlist[bandid]
-    else:
-        print 'Bandid %d has no corresponding band...' % bandid
-        sys.exit(1)
-    #endif
     
     # Set certain defaults for each band...
     if fitband == 'u':
@@ -168,22 +201,14 @@ def psm(inmatches,outak,bandid,niter,thresholdit,ksolve,bsolve,nite,project,psmv
         kgoodHi = 0.17
     #endif
     
-    
-    # The input matched file is inmatches,
-    # the output matched file (used for iterative clipping) is inmatches.<fitband>.tmp,
-    # the residuals file (used for QA plots) is inmatches.<fitband>.res, and
-    # the FITS table (for upload to the NCSA DES db) is inmatches.<fitband>.fit.
-    infile = inmatches
-    outfile = inmatches+'.'+fitband+'.tmp'
-    resfile = inmatches+'.'+fitband+'.res.csv'
-    outfitsfile = inmatches+'.'+fitband+'.fit'
-    usedcatfilesfile = inmatches+'.'+fitband+'.cats.list'
-    
     ## The default zeropoint...
     #defaultzp = 0.0
     
     # The base magnitude error (for adding in quadrature with the Poisson error)
     baseMagErr = 0.02
+
+    # Temporary file, to contain culled matched data after each iteration...
+    tmpfile = infile+'.tmp'
     
     # The number of parameters as a whole (nparam), and
     # the number of free parameters (nFreeParam), which
@@ -228,12 +253,18 @@ def psm(inmatches,outak,bandid,niter,thresholdit,ksolve,bsolve,nite,project,psmv
         # initialize value of nite; we currently assume that there is only one nite represented
         #   in the input match file...
         # (should add sanity check at some point to verify there is only only nite represented)
-        nite = -1
-        
+        nite = ''
+
+        # initialize value of mag_type; we currently assume that there is only one mag_type represented
+        #   in the input match file...
+        # (should add sanity check at some point to verify there is only only mag_type represented)
+        mag_type = ''
+
         # initialize list of image catalog files used in the PSM fit...
         usedcatfilesList = []
         
         # Open input file, read header, and identify necessary columns...
+        # (should be able to move this subsection to outside the iteration loop)
         fd=open(infile)
         h=fd.readline()
         hn=h.strip().split(',')
@@ -272,6 +303,8 @@ def psm(inmatches,outak,bandid,niter,thresholdit,ksolve,bsolve,nite,project,psmv
                 magerrcol=i
             if hn[i].upper() == 'ZEROPOINT':
                 zeropointcol=i
+            if ( (hn[i].upper() == 'MAGTYPE') or (hn[i].upper() == 'MAG_TYPE') ):
+                magtypecol=i
             if hn[i].upper() == 'MAGSTD':
                 magstdcol=i
             if hn[i].upper() == 'COLORSTD':
@@ -282,25 +315,49 @@ def psm(inmatches,outak,bandid,niter,thresholdit,ksolve,bsolve,nite,project,psmv
         # Read input file line-by-line and populate AA and BB matrices
         # (to solve matrix equation AA.XX=BB)...
         for l in fd:
+
             lsp=l.strip().split(',')
+
+            # skip if the wrong filter band...
             band=lsp[bandcol]
             if band != fitband:
                 continue
             #endif
             
+            exptime = float(lsp[exptimecol])
+            if ( (exptime < exptimelo) or (exptime > exptimehi) ):
+                continue
+            #endif
+
+            # skip if on the expnum exclude list...
+            expnum=int(lsp[expnumcol])
+            if expnum in expnumExcludeArray:
+                continue
+            #endif
+
+            # skip if on the ccd exclude list...
+            ccd = int(lsp[ccdcol])
+            if ccd in ccdExcludeArray:
+                continue
+            #endif
+
+            # skip if outside the preferred std star mag range...
+            magstd = float(lsp[magstdcol])
+            if ( (magstd < maglo) or (magstd > maghi) ):
+                continue
+            #endif
+            
+            # skip if outside the preferred std star color range...
             colorstd=float(lsp[colorstdcol])
             if ((band == 'i' or band == 'z') and (colorstd < 0.0 or colorstd > 0.7)) or ((band == 'g' or band == 'r') and (colorstd < 0.2 or colorstd > 1.2)):
                 continue
             #endif
             
-            ccd = int(lsp[ccdcol])
-            magstd = float(lsp[magstdcol])
             mag = float(lsp[magcol])
             magerr = float(lsp[magerrcol])
             #totMagErr = math.sqrt(baseMagErr*baseMagErr + magerr*mag)
             totMagErr = baseMagErr
             weight = 1.0/(baseMagErr*baseMagErr)
-            exptime = float(lsp[exptimecol])
             airmass = float(lsp[airmasscol])
             zeropoint = float(lsp[zeropointcol])
             dm  = (mag - (zeropoint-25.) + 2.5*math.log(exptime,10)) - magstd
@@ -353,9 +410,9 @@ def psm(inmatches,outak,bandid,niter,thresholdit,ksolve,bsolve,nite,project,psmv
                     AA[iparam_b][iparam_a] = 0.0
                     #BB[iparam_b] = bdefaultValues[iccd]
                     BB[iparam_b] = bdefault
-        #endif
+                #endif
         
-        #endif
+            #endif
         
         #endfor
         
@@ -389,7 +446,7 @@ def psm(inmatches,outak,bandid,niter,thresholdit,ksolve,bsolve,nite,project,psmv
             # solving for the b term coefficients...
             if bsolve == 1:
                 nFreeParam += -1
-        #endif
+            #endif
         
         #endfor
         
@@ -402,7 +459,7 @@ def psm(inmatches,outak,bandid,niter,thresholdit,ksolve,bsolve,nite,project,psmv
                 iparam_b = nccd + ccd
                 AA[0][iparam_a] = 0.0
                 AA[0][iparam_b] = 0.0
-        #endfor
+            #endfor
         #endif
         
         # Solve for XX in AA.XX=BB matrix equation...
@@ -423,27 +480,53 @@ def psm(inmatches,outak,bandid,niter,thresholdit,ksolve,bsolve,nite,project,psmv
         
         # Output to matched catalog output file those stars that
         # survive this iteration's clipping...
-        ofd3=open(resfile,'w')
+        ofd3=open(outresfile,'w')
         ofd3.write('res,airmass,magstd,colorstd,ccd,expnum,mjdobs,crpix1,crpix2,naxis1,naxis2,ximage,yimage,catfilename\n')
-        ofd2=open(outfile,'w')
+        ofd2=open(tmpfile,'w')
         fd=open(infile)
         for l in fd:
+
             lsp=l.strip().split(',')
+
+            # skip if the wrong filter band...
             band=lsp[bandcol]
             if band != fitband:
                 continue
+            #endif
             
+            exptime = float(lsp[exptimecol])
+            if ( (exptime < exptimelo) or (exptime > exptimehi) ):
+                continue
+            #endif
+
+            # skip if on the expnum exclude list...
+            expnum=int(lsp[expnumcol])
+            if expnum in expnumExcludeArray:
+                continue
+            #endif
+
+            # skip if on the ccd exclude list...
+            ccd = int(lsp[ccdcol])
+            if ccd in ccdExcludeArray:
+                continue
+            #endif
+
+            # skip if outside the preferred std star mag range...
+            magstd = float(lsp[magstdcol])
+            if ( (magstd < maglo) or (magstd > maghi) ):
+                continue
+            #endif
+            
+            # skip if outside the preferred std star color range...
             colorstd=float(lsp[colorstdcol])
             if ((band == 'i' or band == 'z') and (colorstd < 0.0 or colorstd > 0.7)) or ((band == 'g' or band == 'r') and (colorstd < 0.2 or colorstd > 1.2)):
                 continue
+            #endif
             
-            ccd=int(lsp[ccdcol])
-            magstd=float(lsp[magstdcol])
             mag=float(lsp[magcol])
-            exptime=float(lsp[exptimecol])
             airmass=float(lsp[airmasscol])
-            expnum=int(lsp[expnumcol])
             nite=lsp[nitecol]
+            mag_type=lsp[magtypecol]
             mjdobs=float(lsp[mjdobscol])
             crpix1=float(lsp[crpix1col])
             crpix2=float(lsp[crpix2col])
@@ -468,14 +551,14 @@ def psm(inmatches,outak,bandid,niter,thresholdit,ksolve,bsolve,nite,project,psmv
                 ofd2.write(l)
                 resOutputLine = '%.4f,%.3f,%.4f,%.4f,%d,%d,%.5f,%.3f,%.3f,%d,%d,%.5f,%.5f,%s\n' % (dm,airmass,magstd,colorstd,ccd,expnum,mjdobs,crpix1,crpix2,naxis1,naxis2,ximage,yimage,catfilename)
                 ofd3.write(resOutputLine)
-        #endif
+            #endif
         
         #endfor (fd)
         
         ofd3.close()
         ofd2.close()
-        infile = outfile
-        outfile = infile+'.tmp'
+        infile = tmpfile
+        tmpfile = infile+'.tmp'
         
         # Calculate characteristics of the fit...
         photometricFlag = -1
@@ -494,22 +577,30 @@ def psm(inmatches,outak,bandid,niter,thresholdit,ksolve,bsolve,nite,project,psmv
                 print 'avg:'+str(avg)+'  avgchi:'+str(avgchi)+'  chisq:'+str(chisq)
                 print 'k:'+str(XX[0])+' rms:'+str(sigma)+' n:'+str(ninfit)
                 print 'kerr:'+str(errors[0])
-        #endif
+            #endif
         else:
             print 'Number of free parameters ('+str(nFreeParam)+') >= number of data points ('+str(ninfit)+')'
             print 'Exiting now!'
             sys.exit(1)
-    #endif
+        #endif
     
     #endfor (iiter)
-    
+
+    # Delete old tmp files...
+    tmpfile = args.inputMatchFile
+    for iiter in range(0,niter):
+        tmpfile = tmpfile+'.tmp'
+        os.system('/bin/rm -f '+tmpfile)
+    #endfor
+
+
     # Find unique filenames in usedcatfilesList (using python "set" command),
     #  re-convert the set back to a list, sort the final and unique list, and
-    #  output to (usedcatfilesfile...
+    #  output to (outcatsfile...
     usedcatfilesSet = set(usedcatfilesList)
     usedcatfilesList = list (usedcatfilesSet)
     usedcatfilesList.sort()
-    ofd4=open(usedcatfilesfile,'w')
+    ofd4=open(outcatsfile,'w')
     ofd4.write('FILENAME\n')
     for i in range(0,len(usedcatfilesList)):
         ofd4.write(usedcatfilesList[i]+'\n')
@@ -518,8 +609,7 @@ def psm(inmatches,outak,bandid,niter,thresholdit,ksolve,bsolve,nite,project,psmv
     
     
     # Output the results of fit...
-    os.system("/bin/rm -f "+inmatches+'.'+fitband+'.tmp*')
-    ofd=open(outak,'w')
+    ofd=open(outlogfile,'w')
     ofd.write('niter_'+band+' '+str('%d'%int(niter))+'\n')
     ofd.write('thresholdit_'+band+' '+str('%.4f'%float(thresholdit))+'\n')
     ofd.write('n_'+band+' '+str('%d'%int(ninfit))+'\n')
@@ -540,7 +630,7 @@ def psm(inmatches,outak,bandid,niter,thresholdit,ksolve,bsolve,nite,project,psmv
     ofd.close()
     
     # Output the results of fit into a FITS table file...
-    os.system("/bin/rm -f "+outfitsfile)
+    os.system('/bin/rm -f '+outfitsfile)
     ccdidArray = numpy.arange(1,63)
     niteFormat = 'A%d' % len(nite)
     niteArray = numpy.array([nite]*62)
@@ -604,71 +694,11 @@ def psm(inmatches,outak,bandid,niter,thresholdit,ksolve,bsolve,nite,project,psmv
     tbhdu=pyfits.new_table(cols)
     tbhdu.writeto(outfitsfile)
     
-    
-    print "That's all, folks!"
-    
     sys.exit(0)
 
 #---------------------------------------------------------------------------
-# Main method:
 
 if __name__ == "__main__":
-    
-    # If insufficient number of required arguments, print out usage...
-    if len(sys.argv[1:]) < 5:
-        usage()
-        sys.exit(1)
-    #endif
-    
-    # Parse required arguments (arguments 1-5)...
-    inmatches   = sys.argv[1]
-    outak       = sys.argv[2]
-    bandid      = sys.argv[3]
-    niter       = sys.argv[4]
-    thresholdit = sys.argv[5]
-    
-    # Parse any optional arguments (any beyond argument 5)...
-    try:
-        opts,args = getopt.getopt(sys.argv[6:],'hv',['bsolve', 'ksolve', 'nite=', 'project=', 'psmversion=', 'mag_type=', 'help', 'verbose='])
-    except getopt.GetoptError:
-        usage()
-        sys.exit(1)
-    #end try
-    
-    # Default values for the optional arguments...
-    verbose = 0                     # Verbosity level (amount of output to screen): 0=little; >3=lots
-    bsolve = 0                      # Solve for b coefficients? (0=no, 1=yes)
-    ksolve = 0                      # Solve for k coefficient?  (0=no, 1=yes)
-    nite = '20130221'               # nite of observation
-    project = 'OPS'                 # project name
-    psmversion = 'pyPSM_v0.1'       # psm version id
-    mag_type = 'mag_psf'            # type of magnitude used in fit (e.g., mag_psf, mag_aper_8, ...)
-    
-    for o, a in opts:
-        if o == '--bsolve':
-            bsolve = 1
-        elif o == '--ksolve':
-            ksolve = 1
-        elif o == '--nite':
-            nite = a
-        elif o == '--project':
-            project = a
-        elif o == '--psmversion':
-            psmversion = a
-        elif o == '--mag_type':
-            mag_type = a
-        elif o in ('-h', '--help'):
-            usage()
-            sys.exit(0)
-        elif o in ('-v', '--verbose'):
-            verbose = int(a)
-    #endif
-    #endfor
-    
-    # Call psm method
-    psm(inmatches,outak,bandid,niter,thresholdit,ksolve,bsolve,nite,project,psmversion,mag_type,verbose)
-
+    main()
 
 #---------------------------------------------------------------------------
-
-
