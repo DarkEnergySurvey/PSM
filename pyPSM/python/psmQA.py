@@ -3,11 +3,21 @@
 # Author:    Douglas Tucker
 # Date:      21 May 2013
 # Updated:   21 May 2013
+# Updated:   11 Jul 2014
 
-# Description:
-#
-# This file defines methods for creating QA plots from the residuals
-# residuals CSV file output by psm.
+"""
+Description:
+
+This file defines methods for creating QA plots from the residuals
+residuals CSV file output by psm.
+
+Examples:
+
+psmQA.py --help
+
+psmQA.py --inputResidualsFile psmResiduals-20131002-g-r03p01.csv --outputFileBaseName psmQA-20131002-g-r03p01
+
+"""
 
 import numpy
 import sys
@@ -17,29 +27,32 @@ import getopt
 import csv
 import matplotlib.pyplot as plt
 
-#---------------------------------------------------------------------------
-# Client usage.
-
-def usage():
-    clientName = os.path.basename(sys.argv[0])
-    print
-    print 'Usage:'
-    print ' %s <inmatches> <outak> <bandid> <niter> <thresholdit> [--ksolve] [--bsolve] [--verbose=0 (default)] [-h,--help]' % clientName
-    print 'where:'
-    print '   psmQATableFile is the input residuals file (in CSV format)          (required)'
-    print '   --verbose    is the verbosity level (default=0)                     (optional)'
-    print '   -h,--help    is a toggle to print out this usage guide              (optional)'
-    print
-    print 'Examples:'
-    print ' %s matchemup.g.res.csv --verbose=3' % clientName
-    print ' %s --help' % clientName
-    print
-
 
 #---------------------------------------------------------------------------
 
-def psmQA(psmQATableFile):
+def main():
+    import argparse
+    """Create command line arguments"""
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument('--inputResidualsFile', help='CSV file containing the residuals from psm.py', default='psmResiduals.csv')
+    parser.add_argument('--outputFileBaseName', help='Base name for the QA plots that will be output)', default='psmQA')
+    parser.add_argument('--verbose', help='verbosity level of output to screen (0, 1, 2, ...)', type=int, default=0)
+
+    args = parser.parse_args()
+
+    if args.verbose > 0: print args
+
+    psmQA(args)
+
+
+#---------------------------------------------------------------------------
+
+def psmQA(args):
     
+    psmQATableFile = args.inputResidualsFile
+    outBaseName = args.outputFileBaseName
+    verbose = args.verbose
+
     #Read in csv file...
     csv_file_object = csv.reader(open(psmQATableFile, 'rb'))
     # Use this to skip cvs header...
@@ -64,9 +77,9 @@ def psmQA(psmQATableFile):
     mjdobs   = data[0::,6].astype(numpy.double)
     
     # Output QA plots...
-    
-    outputFile = 'PSM_QA_res_vs_airmass.png'
-    print 'Outputting '+outputFile
+
+    outputFile = '%s.res_vs_airmass.png' % (outBaseName)
+    if verbose > 1:  print 'Outputting '+outputFile
     fig = plt.figure()
     ax = fig.add_subplot(111)
     ax.set_title('residuals vs airmass')
@@ -76,8 +89,8 @@ def psmQA(psmQATableFile):
     ax.grid(True)
     plt.savefig(outputFile, format='png')
     
-    outputFile = 'PSM_QA_res_vs_mag.png'
-    print 'Outputting '+outputFile
+    outputFile = '%s.res_vs_mag.png' % (outBaseName)
+    if verbose > 1:  print 'Outputting '+outputFile
     fig = plt.figure()
     ax = fig.add_subplot(111)
     ax.set_title('residuals vs std mag')
@@ -87,8 +100,8 @@ def psmQA(psmQATableFile):
     ax.grid(True)
     plt.savefig(outputFile, format='png')
     
-    outputFile = 'PSM_QA_res_vs_color.png'
-    print 'Outputting '+outputFile
+    outputFile = '%s.res_vs_color.png' % (outBaseName)
+    if verbose > 1:  print 'Outputting '+outputFile
     fig = plt.figure()
     ax = fig.add_subplot(111)
     ax.set_title('residuals vs std color')
@@ -98,8 +111,8 @@ def psmQA(psmQATableFile):
     ax.grid(True)
     plt.savefig(outputFile, format='png')
     
-    outputFile = 'PSM_QA_res_vs_ccd.png'
-    print 'Outputting '+outputFile
+    outputFile = '%s.res_vs_ccd.png' % (outBaseName)
+    if verbose > 1:  print 'Outputting '+outputFile
     fig = plt.figure()
     ax = fig.add_subplot(111)
     ax.set_title('residuals vs ccd')
@@ -109,8 +122,8 @@ def psmQA(psmQATableFile):
     ax.grid(True)
     plt.savefig(outputFile, format='png')
     
-    outputFile = 'PSM_QA_res_vs_expnum.png'
-    print 'Outputting '+outputFile
+    outputFile = '%s.res_vs_expnum.png' % (outBaseName)
+    if verbose > 1:  print 'Outputting '+outputFile
     fig = plt.figure()
     ax = fig.add_subplot(111)
     ax.set_title('residuals vs expnum')
@@ -120,8 +133,8 @@ def psmQA(psmQATableFile):
     ax.grid(True)
     plt.savefig(outputFile, format='png')
     
-    outputFile = 'PSM_QA_res_vs_mjd.png'
-    print 'Outputting '+outputFile
+    outputFile = '%s.res_vs_mjd.png' % (outBaseName)
+    if verbose > 1:  print 'Outputting '+outputFile
     fig = plt.figure()
     ax = fig.add_subplot(111)
     ax.set_title('residuals vs mjd')
@@ -130,53 +143,18 @@ def psmQA(psmQATableFile):
     ax.plot(mjdobs, res, 'b.')
     ax.grid(True)
     plt.savefig(outputFile, format='png')
-    
-    
-    
-    print "That's all, folks!"
-    
+
+    # Future:  add a section here to output a "residuals vs. X,Y position on the focal plane" plot...
+    #outputFile = '%s.res_vs_fpXY.png' % (outBaseName)
+
+
+    # Return with exit code 0...
     sys.exit(0)
 
+
 #---------------------------------------------------------------------------
-# Main method:
 
 if __name__ == "__main__":
-    
-    # If help requested, or if insufficient number of arguments, print out usage.
-    if (sys.argv[1] == '-h') or (sys.argv[1] == '--help'):
-        usage()
-        sys.exit(0)
-    elif len(sys.argv[1:]) < 1:
-        usage()
-        sys.exit(1)
-    #endif
-    
-    # Parse required argument (arguments 1)...
-    psmQATableFile = sys.argv[1]
-    
-    # Parse any optional arguments (any beyond argument 1)...
-    try:
-        opts,args = getopt.getopt(sys.argv[2:],'h',['help', 'verbose='])
-    except getopt.GetoptError:
-        usage()
-        sys.exit(1)
-    #end try
-    
-    verbose = 0        # Default value for verbosity
-    
-    for o, a in opts:
-        if o in ('-h', '--help'):
-            usage()
-            sys.exit(0)
-        elif o in ('--verbose'):
-            verbose = int(a)
-    #endif
-    #endfor
-    
-    # Call psmQA method
-    psmQA(psmQATableFile)
-
+    main()
 
 #---------------------------------------------------------------------------
-
-
