@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 """
+Description:
+
 Main pyPSM script.
 
 
@@ -16,127 +18,56 @@ import os
 import time
 import datetime
 
+#---------------------------------------------------------------------------
+
 def main():
 
-	import argparse
-	import time
+    import argparse
 
-	"""Create command line arguments"""
-	parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-	parser.add_argument('--section','-s',default='db-destest',
-			    help='section in the .desservices file w/ DB connection information')
-	parser.add_argument('--inputCatListFile', help='CSV file containing input list of catalog file names (plus other relevant data)', default='psmInputCatList.csv')
-	parser.add_argument('--outputSolutionFile', help='FITS table containing results of PSM fit', default='psmFit.fits')
-	parser.add_argument('--outputCatListFile', help='CSV file containing list of catalog files actually used in PSM solution (for purposes of tracking provenance)', default='psmOutputCatList.fits')
-	parser.add_argument('--stdcat', help='standard star catalog', default='standard_stars_v6.csv')
-	parser.add_argument('--bsolve',help='solve for b terms', default=False, action='store_true')
-	parser.add_argument('--ksolve',help='solve for k term', default=False, action='store_true')
-	parser.add_argument('--verbose', help='verbosity level of output to screen', default=0)
+    """Create command line arguments"""
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument('--section','-s',default='db-destest',help='section in the .desservices file w/ DB connection information')
+    parser.add_argument('--inputCatListFile', help='CSV file containing input list of catalog file names (plus other relevant data)', default='psmInputCatList.csv')
+    parser.add_argument('--outputSolutionFile', help='FITS table containing results of PSM fit', default='psmFit.fits')
+    parser.add_argument('--outputCatListFile', help='CSV file containing list of catalog files actually used in PSM solution (for purposes of tracking provenance)', default='psmOutputCatList.fits')
+    parser.add_argument('--stdcat', help='standard star catalog', default='standard_stars_pypsmFormat.csv')
+    parser.add_argument('--band', help='band to be fit (TO BE DEPRECATED)', default='g', choices=['u','g','r','i','z','Y'])
+    parser.add_argument('--magType', help='mag type to use (mag_psf, mag_auto, mag_aper_8, ...)', default='mag_psf')
+    parser.add_argument('--sex_mag_zeropoint', help='default sextractor zeropoint to use to convert fluxes to sextractor mags (mag_sex = -2.5log10(flux) + sex_mag_zeropoint)', type=float, default=25.0)
+    parser.add_argument('--bsolve',help='a toggle to solve for the b term coefficients', default=False, action='store_true')
+    parser.add_argument('--ksolve',help='a toggle to solve for the k term coefficient', default=False, action='store_true')
+    parser.add_argument('--niter', help='the number of iterations for the outlier rejection', type=int, default=0)
+    parser.add_argument('--thresholdit', help='the threshold (in mag) for the outlier rejection', type=float, default=0)
+    parser.add_argument('--magLo', help='std star mag lower limit  to use in fit', type=float, default=15.0)
+    parser.add_argument('--magHi', help='std star mag upper limit to use in fit', type=float, default=18.0)
+    parser.add_argument('--exptimeLo', help='exposure time lower limit (in seconds) to use in fit', type=float, default=2.0)
+    parser.add_argument('--exptimeHi', help='exposure time upper limit (in seconds) to use in fit', type=float, default=100.0)
+    parser.add_argument('--ccdExcludeList', help='a comma-separated list of CCDNUMs to exclude from the fit', default='')
+    parser.add_argument('--expnumExcludeList', help='a comma-separated list of EXPNUMs to exclude from the fit', default='')
+    parser.add_argument('--ignoreRasicam',help='include this flag to ignore RASICAM sky condition indicators', default=False, action='store_true')
+    parser.add_argument('--keepIntermediateFiles',help='include this flag to keep (non-essential) intermediate files after running script', default=False, action='store_true')
+    parser.add_argument('--project', help='the project id (deprecated?)', default='OPS')
+    parser.add_argument('--psmversion', help='the version of pyPSM being used (deprecated?)', default='pyPSM_v0.1')
+    parser.add_argument('--verbose', help='verbosity level of output to screen', default=0)
 
-        args = parser.parse_args()
+    args = parser.parse_args()
 
-        callpsm(args)
+    if args.verbose > 0: print args
 
+    callpsm(args)
+
+
+#---------------------------------------------------------------------------
 
 def callpsm(args):
-   
-        import os
 
-	print args
-	print args.nite
-	print args.section
-	print args.band
+    import string
 
-	queryTextFile = "obsquery.%s.%s.txt" % (args.nite, args.band)
+    print args
 
-	queryText = "\
-SELECT e.expnum, s.filename, \n \
-       s.object_number, s.x_image, s.y_image, s.radeg, s.decdeg, s.flux_psf, s.fluxerr_psf, \n \
-       3600.*s.fwhm_world as fwhm_arcsec, s.class_star, s.spread_model, s.spreaderr_model, s.flags, \n \
-       e.nite, e.object, e.band, i.ccdnum, i.airmass,  \n \
-       e.mjd_obs, e.exptime, i.skybrite, i.skysigma, \n \
-       i.elliptic as image_ellipt, 0.27*i.fwhm as image_fwhm_arcsec, \n \
-       i.saturate as image_sat_level, c.filetype, i.crpix1, i.crpix2, i.naxis2, i.naxis2, rasicam.* \n \
-FROM EXPOSURE e, IMAGE i, WDF, CATALOG c, SE_OBJECT s, gruendl.rasicam_decam@desoper rasicam \n \
-WHERE e.expnum=i.expnum AND  \n \
-       i.filename=wdf.parent_name AND \n \
-       wdf.child_name=c.filename AND \n \
-       c.filename=s.filename AND \n \
-       e.filename=rasicam.exposurename AND \n \
-       c.filetype='cat_finalcut' AND \n \
-       s.reqnum=64 AND \n \
-       ( (s.class_star > 0.8) OR ((s.spread_model + 3.*spreaderr_model) between -0.003 AND 0.003) ) AND \n \
-       s.flux_psf > 2000. AND \n \
-       s.flags < 3 AND \n \
-       (UPPER(rasicam.source)='HEADER') AND (UPPER(rasicam.gskyphot)='T') AND \n \
-       s.filename in (select distinct filename from se_object where nite=%s and reqnum = 64 and band='%s') \n \
-ORDER BY s.radeg \n" % (args.nite,args.band)
-
-	print queryText
-
-	os.system("/bin/rm -f "+queryTextFile)
-	ofd=open(queryTextFile,'w')
-	ofd.write(queryText)
-	ofd.close()
-
-
-     ##cmd = "rm -f twomass-matchStarsRaDec2.cat"
-     #cmd = "rm -f %s" % (twomasscat)
-     #status = os.system(cmd)
-     ##cmd = "%s -c %s %s -b 100.0 -smj -m %i >> twomass-matchStarsRaDec2.cat" % (find2mass,raFieldHMS,decFieldDMS,matchNStar)
-     #cmd = "%s -c %s %s -b 100.0 -smj -m %i >> %s" % (find2mass,raFieldHMS,decFieldDMS,matchNStar,twomasscat)
-     #print "Running %s" % cmd
-     #status = os.system(cmd)
-     #print status
-     #if status != 0:
-     #  print "find2mass failed on reference image %s" % image
-     #  sys.exit(1)
-     #else:
-     #  print "find2mass ran successfully on reference image %s" % image
-
-   # Output the results of fit...
-#   os.system("/bin/rm -f "+inmatches+'.'+fitband+'.tmp*')
-#   ofd=open(outak,'w')
-#   ofd.write('niter_'+band+' '+str('%d'%int(niter))+'\n')
-#   ofd.write('thresholdit_'+band+' '+str('%.4f'%float(thresholdit))+'\n')
-#   ofd.write('n_'+band+' '+str('%d'%int(ninfit))+'\n')
-#   ofd.write('dof_'+band+' '+str('%d'%int(dof))+'\n')
-#   ofd.write('rms_'+band+' '+str('%.4f'%float(sigma))+'\n')
-#   ofd.write('chisq_'+band+' '+str('%.4f'%float(chisq))+'\n')
-#   ofd.write('k_'+band+' '+str('%.3f'%float(XX[0]))+' +/- '+str('%.3f'%float(errors[0]))+'\n')
-#   for i in range(1,63):
-#      outputLine = 'a_%s %2d %.3f +/- %.3f \n' % (band, i, XX[i]-25., errors[i])
-#      ofd.write(outputLine)
-#      if verbose > 1: print outputLine,
-#   #endfor
-#   for i in range(1,63):
-#      outputLine = 'b_%s %2d %.3f +/- %.3f \n' % (band, i, XX[nccd+i], errors[nccd+i])
-#      ofd.write(outputLine)
-#      if verbose > 1: print outputLine,
-#   #endfor
-#   ofd.close()
-
-#	query.py --section db-destest --format csv --header + < obsquery.$band.txt | awk 'NR>1' > obsquery.$band.out
-#	echo "expnum,ccd,exptime,airmass,amp,ra,dec,mag,magerr,class_star,flags,band" > mystars.$band.csv
-#	# Note:  the values of fluxerr_psf seem abnormally low; we will calculate the magerr_psf directly from the flux and a gain of 4.8e-/ADU...
-#        #awk -F, 'BEGIN{OFS=","} NR>1 && $8>0. {print $1,$18,$21,$19,"-1",$6,$7,-2.5*0.43429448190325176*log($8)+25.,2.5*0.43429448190325176*$9/$8,$11,$14,$17}' obsquery.$band.out >> mystars.$band.csv
-#	awk -F, 'BEGIN{OFS=","} NR>1 && $8>0. {print $1,$18,$21,$19,"-1",$6,$7,-2.5*0.43429448190325176*log($8)+25.,2.5*0.43429448190325176/sqrt(4.8*$8),$11,$14,$17}' obsquery.$band.out >> mystars.$band.csv
-#	matchsort.py eqstds.csv mystars.$band.csv matchemup.$band.csv
-#	psm.py matchemup.$band.csv solve.$band.txt $bandIndex 3 0.1 --bsolve --ksolve --verbose 3
-
-
-
-#	echo "running QA..."
-#	psmQA.py matchemup.$band.csv.$band.res.csv
-#	mv PSM_QA_res_vs_airmass.png PSM_QA_res_vs_airmass.$band.png
-#	mv PSM_QA_res_vs_ccd.png PSM_QA_res_vs_ccd.$band.png
-#	mv PSM_QA_res_vs_color.png PSM_QA_res_vs_color.$band.png
-#	mv PSM_QA_res_vs_expnum.png PSM_QA_res_vs_expnum.$band.png
-#	mv PSM_QA_res_vs_mag.png PSM_QA_res_vs_mag.$band.png
-	
-#	echo "the solution for" $band "can be found in "matchemup.csv.$band.fit
-
-
+#---------------------------------------------------------------------------
 
 if __name__ == "__main__":
-	main()
+    main()
+
+#---------------------------------------------------------------------------
