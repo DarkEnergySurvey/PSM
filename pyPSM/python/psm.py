@@ -37,7 +37,7 @@ Examples:
 
 psm.py --help
 
-psm.py --inputMatchFile matched-20131002-g-r03p01.csv --outputResultsFITSFile psmResults-20131002-g-r03p01.fits --outputResultsLogFile psmResults-20131002-g-r03p01.log --outputResidualsFile psmResiduals-20131002-g-r03p01.csv --outputCatsUsedFile psmCats-20131002-g-r03p01.list --band g --niter 3 --thresholdit 0.1 --ksolve --bsolve --verbose 3
+psm.py --inputMatchFile matched-20131002-g-r03p01.csv --outputResultsFITSFile psmResults-20131002-g-r03p01.fits --outputResultsLogFile psmResults-20131002-g-r03p01.log --outputResidualsFile psmResiduals-20131002-g-r03p01.csv --outputCatsUsedFile psmCats-20131002-g-r03p01.list --band g --niter 3 --thresholdit 0.1 --ksolve --bsolve --ccdExcludeList 61,2,31 --expnumExcludeList 240688,240724,240774 --verbose 3
 
 """
 
