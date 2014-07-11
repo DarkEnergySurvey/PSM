@@ -61,6 +61,7 @@ def psmQA(psmQATableFile):
     colorstd = data[0::,3].astype(numpy.double)
     ccd      = data[0::,4].astype(numpy.int)
     expnum   = data[0::,5].astype(numpy.int)
+    mjdobs   = data[0::,6].astype(numpy.double)
     
     # Output QA plots...
     
@@ -116,6 +117,17 @@ def psmQA(psmQATableFile):
     ax.set_xlabel('exposure number',fontsize=12)
     ax.set_ylabel('residuals [mag]',fontsize=12)
     ax.plot(expnum, res, 'b.')
+    ax.grid(True)
+    plt.savefig(outputFile, format='png')
+    
+    outputFile = 'PSM_QA_res_vs_mjd.png'
+    print 'Outputting '+outputFile
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    ax.set_title('residuals vs mjd')
+    ax.set_xlabel('MJD',fontsize=12)
+    ax.set_ylabel('residuals [mag]',fontsize=12)
+    ax.plot(mjdobs, res, 'b.')
     ax.grid(True)
     plt.savefig(outputFile, format='png')
     
