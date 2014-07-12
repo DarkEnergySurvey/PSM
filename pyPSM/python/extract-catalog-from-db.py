@@ -260,7 +260,7 @@ def callextractcatalogsfromdb(args):
                          lskyvarDict[catFilename],
                          sourceDict[catFilename]
                          ])
-            if args.verbose > 2:  print line
+            if args.verbose > 3:  print line
             writer.writerow(line)
     
     dbh.close()
