@@ -10,7 +10,7 @@ Examples:
 
 matchsort.py --help
 
-matchsort.py --inputStdStarCatFile stdstarcat-v6.csv --inputObsCatFile obsquery-20131002-g-r03p01.csv --outputMatchFile matched-20131002-g-r03p01.csv --verbose 1
+matchsort.py --inputStdStarCatFile standard_stars_all_id6_pypsmFormat.csv --inputObsCatFile obsquery-20131002-g-r03p01.csv --outputMatchFile matched-20131002-g-r03p01.csv --verbose 1
 
 """
 
