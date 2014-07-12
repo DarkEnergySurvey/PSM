@@ -207,7 +207,7 @@ def callextractcatalogsfromdb(args):
         hdr.insert(11,'ZEROPOINT')
         hdr.insert(12,'MAGTYPE')
         hdr.extend(['NITE','OBJECT','BAND','CCDNUM','AIRMASS','MJD_OBS','EXPTIME','SKYBRITE','SKYSIGMA','IMAGE_ELLIPT','IMAGE_FWHM_ARCSEC','IMAGE_SAT_LEVEL','FILETYPE','CRPIX1','CRPIX2','NAXIS1','NAXIS2','GSKYPHOT','GSKYVAR','LSKYPHOT','LSKYVAR','SOURCE'])
-        if args.verbose > 2:  print hdr
+        if args.verbose > 3:  print hdr
         writer.writerow(hdr)
                             
         #Then output (modified) contents...
