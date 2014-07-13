@@ -191,7 +191,7 @@ def callpsm(args):
             print '\n\n\n'
     else:
         if verbose > 0:
-            print 'Final Cleanup:  deleting following intermediate files:  %s, $s' % (outputObsFile, outputMatchFile)
+            print 'Final Cleanup:  deleting following intermediate files:  %s, %s' % (outputObsFile, outputMatchFile)
         cmd = """rm -f %s %s""" % (outputObsFile, outputMatchFile)
         status = os.system(cmd)
         if status != 0:
