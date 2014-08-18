@@ -601,7 +601,8 @@ def psm(args):
     usedcatfilesList = list (usedcatfilesSet)
     usedcatfilesList.sort()
     ofd4=open(outcatsfile,'w')
-    ofd4.write('FILENAME\n')
+    #removing to be compatible with workflow list no-header convention
+    #ofd4.write('FILENAME\n')
     for i in range(0,len(usedcatfilesList)):
         ofd4.write(usedcatfilesList[i]+'\n')
     #endfor
