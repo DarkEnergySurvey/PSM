@@ -7,7 +7,7 @@ Examples:
 
 extract-catalog-from-db.py --help
 
-extract-catalog-from-db.py -s db-destest --inputCatListFile psmcats-20131002-g-r03p01.list --outputObsFile obsquery-20131002-g-r03p01.csv --verbose 1
+extract-catalog-from-db.py -s db-destest --inputCatListFile psmcats-20131002-g-r03p01.list --outputObsFile obsquery-20131002-g-r03p01.csv --addheader --verbose 1
     
 """
 
@@ -29,6 +29,7 @@ def main():
     parser.add_argument('--keepIntermediateFiles',help='include this flag to keep (non-essential) intermediate files after running script', default=False, action='store_true')
     parser.add_argument('--magType', help='mag type to use (mag_psf, mag_auto, mag_aper_8, ...)', default='mag_psf')
     parser.add_argument('--sex_mag_zeropoint', help='default sextractor zeropoint to use to convert fluxes to sextractor mags (mag_sex = -2.5log10(flux) + sex_mag_zeropoint)', type=float, default=25.0)
+    parser.add_argument('--addheader',help='a toggle to append (virtual) a header line to the top of the inputCatListFile', default=False, action='store_true')
     parser.add_argument('--verbose', help='verbosity level of output to screen (0, 1, 2, ...)', type=int, default=0)
                         
     args = parser.parse_args()
@@ -49,12 +50,18 @@ def callextractcatalogsfromdb(args):
 
     if args.verbose > 0: print args
     
-    print 'Reading in catalog list input file %s' % args.inputCatListFile
     
     # Check first if file exists...
     if not os.path.isfile(args.inputCatListFile):
         print '%s does not seem to exist... exiting now...' % args.inputCatListFile
         sys.exit(1)
+
+    if args.addheader:
+      print 'appending header PSM_DIR/pyPSM/data/psmcat.header to %s' % args.inputCatListFile
+      os.system("mv "+args.inputCatListFile+" tmpcatlistfile; cat "+os.environ['PSM_DIR']+"/pyPSM/data/psmcat.header tmpcatlistfile > "+args.inputCatListFile)
+
+
+    print 'Reading in catalog list input file %s' % args.inputCatListFile
     
     # Read in the file...
     data=np.genfromtxt(args.inputCatListFile,dtype=None,delimiter=',',names=True)
@@ -172,14 +179,14 @@ def callextractcatalogsfromdb(args):
     
     queryText = """
         SELECT s.filename,
-               s.object_number, s.x_image, s.y_image, s.radeg, s.decdeg, s.%s, s.%s,
+               s.object_number, s.x_image, s.y_image, s.ra, s.dec, s.%s, s.%s,
                3600.*s.fwhm_world as fwhm_arcsec, s.class_star, s.spread_model, s.spreaderr_model, s.flags
         FROM SE_OBJECT s, opm_filename_gtt g
         WHERE  s.filename=g.filename AND
                ( (s.class_star > 0.8) OR ((s.spread_model + 3.*spreaderr_model) between -0.003 AND 0.003) ) AND
                s.flux_psf > 2000. AND
                s.flags < 3
-        ORDER BY s.radeg""" % (fluxType, fluxerrType)
+        ORDER BY s.ra""" % (fluxType, fluxerrType)
     
     
     if args.verbose > 0: print queryText

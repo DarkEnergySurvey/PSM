@@ -304,9 +304,9 @@ def matchsort(args):
 
     h2n=h2.strip().split(',')
     for i in range(0,len(h2n)):
-        if h2n[i].upper() == 'RADEG':
+        if h2n[i].upper() == 'RA':
             racol2=i
-        if h2n[i].upper() == 'DECDEG':
+        if h2n[i].upper() == 'DEC':
             deccol2=i
         if h2n[i].upper() == 'BAND':
             bandcol2=i

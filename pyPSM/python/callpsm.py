@@ -17,7 +17,7 @@ Examples:
 
 callpsm --help
 
-callpsm.py -s db-destest --inputCatListFile psmcats-20131002-g-r03p01.list --outputSolutionFile psmResults-20131002-g-r03p01.fits --outputCatListFile psmcats-20131002-g-r03p01.provenance.list --stdcat standard_stars_all_id6_pypsmFormat.csv --niter 3 --thresholdit 0.1 --ksolve --bsolve --ccdExcludeList 61,2,31 --expnumExcludeList 240688,240724,240774 --verbose 2
+callpsm.py -s db-destest --inputCatListFile psmcats-20131002-g-r03p01.list --outputSolutionFile psmResults-20131002-g-r03p01.fits --outputCatListFile psmcats-20131002-g-r03p01.provenance.list --stdcat standard_stars_all_id6_pypsmFormat.csv --niter 3 --thresholdit 0.1 --ksolve --bsolve --ccdExcludeList 61,2,31 --expnumExcludeList 240688,240724,240774 --addheader --verbose 2
 
 """
 
@@ -55,6 +55,7 @@ def main():
     parser.add_argument('--keepIntermediateFiles',help='include this flag to keep (non-essential) intermediate files after running script', default=False, action='store_true')
     parser.add_argument('--project', help='the project id (deprecated?)', default='OPS')
     parser.add_argument('--psmversion', help='the version of pyPSM being used (deprecated?)', default='pyPSM_v0.1')
+    parser.add_argument('--addheader',help='a toggle to append (virtual) a header line to the top of the inputCatListFile', default=False, action='store_true')
     parser.add_argument('--verbose', help='verbosity level of output to screen', type=int, default=0)
 
     args = parser.parse_args()
@@ -93,6 +94,7 @@ def callpsm(args):
     keepIntermediateFiles = args.keepIntermediateFiles
     project = args.project
     psmversion = args.psmversion
+    addheader = args.addheader
     verbose = args.verbose
 
     # Some quantities derived from the parameters from original callpsm.py args list...
@@ -120,6 +122,8 @@ def callpsm(args):
     cmd = """extract-catalog-from-db.py -s %s --inputCatListFile %s --outputObsFile %s --magType %s --sex_mag_zeropoint %f --verbose %d""" % (section, inputCatListFile, outputObsFile, magType, sex_mag_zeropoint, verbose)
     if ignoreRasicam:
         cmd = cmd+" --ignoreRasciam"
+    if addheader:
+        cmd = cmd+" --addheader"
     if verbose > 0:
         print 'Running:  '+cmd
     status = os.system(cmd)
@@ -192,7 +196,10 @@ def callpsm(args):
     else:
         if verbose > 0:
             print 'Final Cleanup:  deleting following intermediate files:  %s, %s' % (outputObsFile, outputMatchFile)
-        cmd = """rm -f %s %s""" % (outputObsFile, outputMatchFile)
+	if addheader:
+         cmd = """rm -f %s %s %s""" % (outputObsFile, outputMatchFile,'tmpcatlistfile')
+	else:
+         cmd = """rm -f %s %s""" % (outputObsFile, outputMatchFile)
         status = os.system(cmd)
         if status != 0:
             print '* * * Final cleanup failed... exiting callpsm.py now! * * *'
