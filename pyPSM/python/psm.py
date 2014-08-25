@@ -4,6 +4,8 @@
 # Date:      17 May 2013
 # Updated:   23 May 2013
 # Updated:   10 Jul 2014
+# Updated:   18 Aug 2014
+# Updated:   25 Aug 2014
 
 """
 psm.py
@@ -632,12 +634,12 @@ def psm(args):
     
     # Output the results of fit into a FITS table file...
     os.system('/bin/rm -f '+outfitsfile)
-    ccdidArray = numpy.arange(1,63)
+    ccdnumArray = numpy.arange(1,63)
     niteFormat = 'A%d' % len(nite)
     niteArray = numpy.array([nite]*62)
     mjdloArray = mjdobsLo*numpy.ones(nccd,dtype=numpy.int)
     mjdhiArray = mjdobsHi*numpy.ones(nccd,dtype=numpy.int)
-    ccdidArray = numpy.arange(1,63)
+    ccdnumArray = numpy.arange(1,63)
     bandFormat = 'A%d' % len(band)
     bandArray = numpy.array([band]*62)
     kArray = XX[0]*numpy.ones(nccd,dtype=numpy.int)
@@ -669,7 +671,7 @@ def psm(args):
     col1  = pyfits.Column(name='nite',           format=niteFormat, array=niteArray)
     col2  = pyfits.Column(name='mjdlo',          format='D', array=mjdloArray)
     col3  = pyfits.Column(name='mjdhi',          format='D', array=mjdhiArray)
-    col4  = pyfits.Column(name='ccdid',          format='I', array=ccdidArray)
+    col4  = pyfits.Column(name='ccdnum',         format='I', array=ccdnumArray)
     col5  = pyfits.Column(name='band',           format=bandFormat, array=bandArray)
     col6  = pyfits.Column(name='a',              format='E', array=aArray)
     col7  = pyfits.Column(name='aerr',           format='E', array=aerrArray)
