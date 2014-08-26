@@ -29,9 +29,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('--section','-s',default='db-destest',
                         help='section in the .desservices file w/ DB connection information')
-    parser.add_argument('--nite', help='nite to be queried', default=20131002)
-    parser.add_argument('--reqnum', help='request number to be queried', default=3, type=int)
-    parser.add_argument('--attempt', help='processing attempt to be queried (***CURRENTLY NOT USED***)', default=1, type=int)
+    parser.add_argument('--nite', help='nite to be queried', default='20140819')
+    parser.add_argument('--tag', help='tag string number to be queried', default='Y2N_FIRSTCUT')
     parser.add_argument('--band', help='band to be queried', default='g', choices=['u','g','r','i','z','Y'])
     parser.add_argument('--outputCatListFile', help='ASCII list file containing list of unique names of all catalog files (plus exposure and image-based info) returned by query', default='psmcats.list')
     parser.add_argument('--verbose', help='verbosity level of output to screen (0,1,2,...)', default=0, type=int)
@@ -61,26 +60,20 @@ def callcreatecataloglistfromdb(args):
     # NOTE:  RASICAM cuts (if any) are now performed downstream (in extract-catalog-from-db.py).
     #        The RASICAM info is grabbed via this query, but no RASICAM cuts now appear in the
     #        the WHERE clause of this query.
-    queryText = """
-        SELECT e.expnum, concat('/full/path/',s.filename) as filename,
-               e.nite, e.object, e.band, i.ccdnum, i.airmass,
-               e.mjd_obs, e.exptime, i.skybrite, i.skysigma,
-               i.elliptic as image_ellipt, 0.27*i.fwhm as image_fwhm_arcsec,
-               i.saturate as image_sat_level, c.filetype, i.crpix1, i.crpix2, i.naxis1, i.naxis2,
-               rasicam.gskyphot, rasicam.gskyvar, rasicam.lskyphot, rasicam.lskyvar, rasicam.source
-        FROM EXPOSURE e, IMAGE i, WDF, CATALOG c, gruendl.rasicam_decam@desoper rasicam,
-             (select distinct filename from se_object where nite=%s and reqnum=%d and band='%s') s
-        WHERE e.expnum=i.expnum AND
-              i.filename=wdf.parent_name AND
-              wdf.child_name=c.filename AND
-              c.filename=s.filename AND
-              e.filename=rasicam.exposurename AND
-              c.filetype='cat_finalcut'
-        ORDER BY s.filename""" % (args.nite,args.reqnum,args.band)
-    
-        #AND
-        #   (UPPER(rasicam.source)='HEADER') AND (UPPER(rasicam.gskyphot)='T')
-    
+    queryText = """SELECT e.expnum, s.filename, e.nite, e.object, e.band, i.ccdnum, i.airmass,
+ 	e.mjd_obs, e.exptime, i.skybrite, i.skysigma, i.elliptic as image_ellipt, 
+	0.27*i.fwhm as image_fwhm_arcsec, i.saturate as image_sat_level, c.filetype, 
+	i.crpix1, i.crpix2, i.naxis1, i.naxis2 ,rasicam.gskyphot, rasicam.gskyvar, 
+	rasicam.lskyphot, rasicam.lskyvar, rasicam.source 
+	FROM PROD.EXPOSURE e left outer join PROD.RASICAM_DECAM rasicam on e.expnum = rasicam.expnum, 
+	PROD.IMAGE i, PROD.WDF, PROD.CATALOG c, (select c.filename from PROD.catalog c,
+ 	PROD.ops_proctag optag, PROD.exposure e where e.expnum=c.expnum and 
+	c.filename like concat(optag.unitname,'%s') and c.filetype='cat_finalcut' and 
+	optag.tag='%s' and c.nite='%s' and c.band='%s' and 
+	e.program='photom-std-field' order by c.expnum, c.ccdnum) s WHERE e.expnum=i.expnum AND 
+	i.filename=wdf.parent_name AND wdf.child_name=c.filename AND c.filename=s.filename ORDER BY 
+        s.filename""" % ('%',args.tag,args.nite,args.band)
+
     if args.verbose > 0: print queryText
     
     print 'Running query...'

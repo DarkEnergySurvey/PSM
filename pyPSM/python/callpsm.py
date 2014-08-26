@@ -121,7 +121,7 @@ def callpsm(args):
     outputObsFile = 'obsquery-%s.csv' % baseName
     cmd = """extract-catalog-from-db.py -s %s --inputCatListFile %s --outputObsFile %s --magType %s --sex_mag_zeropoint %f --verbose %d""" % (section, inputCatListFile, outputObsFile, magType, sex_mag_zeropoint, verbose)
     if ignoreRasicam:
-        cmd = cmd+" --ignoreRasciam"
+        cmd = cmd+" --ignoreRasicam"
     if addheader:
         cmd = cmd+" --addheader"
     if verbose > 0:
@@ -159,9 +159,13 @@ def callpsm(args):
         cmd = cmd+" --bsolve"
     if ksolve:
         cmd = cmd+" --ksolve"
-    if expnumExcludeArray.size > 0:
+    print expnumExcludeArray.size
+    print expnumExcludeArray
+    if expnumExcludeArray.size > 0 and expnumExcludeArray[0] != 0:
         cmd = cmd+' --expnumExcludeList '+expnumExcludeList
-    if ccdExcludeArray.size > 0:
+    print ccdExcludeArray.size
+    print ccdExcludeArray
+    if ccdExcludeArray.size > 0 and ccdExcludeArray[0] != 0:
         cmd = cmd+' --ccdExcludeList '+ccdExcludeList
     if verbose > 0:
         print 'Running:  '+cmd
